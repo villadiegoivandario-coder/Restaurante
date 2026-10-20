@@ -13,7 +13,6 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto, CreateOrderItemDto } from './dto/create-order.dto';
-import { KitchenGateway } from './kitchen.gateway';
 
 const orderDetails = {
   items: {
@@ -34,16 +33,15 @@ type ProductWithRecipe = Prisma.ProductGetPayload<{
 type FlavorWithRecipe = Prisma.FlavorGetPayload<{
   include: { recipe: { include: { ingredient: true } } };
 }>;
-type KitchenOrder = Prisma.OrderGetPayload<{ include: typeof orderDetails }>;
+type OrderWithDetails = Prisma.OrderGetPayload<{ include: typeof orderDetails }>;
 
 @Injectable()
 export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly kitchen: KitchenGateway,
   ) {}
 
-  async create(dto: CreateOrderDto): Promise<KitchenOrder> {
+  async create(dto: CreateOrderDto): Promise<OrderWithDetails> {
     const order = await this.prisma.$transaction(
       async (tx) => {
         const productIds = [...new Set(dto.items.map((item) => item.productId))];
@@ -200,11 +198,10 @@ export class OrdersService {
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
 
-    this.kitchen.emitNewOrder(this.toKitchenPayload(order));
     return order;
   }
 
-  async updateStatus(id: string, status: OrderStatus): Promise<KitchenOrder> {
+  async updateStatus(id: string, status: OrderStatus): Promise<OrderWithDetails> {
     const current = await this.prisma.order.findUnique({
       where: { id },
       select: { status: true },
@@ -235,7 +232,6 @@ export class OrdersService {
       where: { id },
       include: orderDetails,
     });
-    this.kitchen.emitOrderStatusUpdated(this.toKitchenPayload(order));
     return order;
   }
 
@@ -354,32 +350,4 @@ export class OrdersService {
     return consumption;
   }
 
-  private toKitchenPayload(order: KitchenOrder): Record<string, unknown> {
-    return {
-      id: order.id,
-      number: order.number,
-      table: order.tableName,
-      type: order.type,
-      status: order.status,
-      note: order.note,
-      createdAt: order.createdAt,
-      items: order.items.map((item) => ({
-        id: item.id,
-        name: item.productName,
-        quantity: item.quantity,
-        note: item.note,
-        portions: item.portions.map((portion) => ({
-          number: portion.number,
-          flavors: portion.flavors.map((flavor) => ({
-            name: flavor.flavorName,
-            pieces: flavor.pieces,
-          })),
-          dips: portion.dips.map((dip) => ({
-            name: dip.productName,
-            quantity: dip.quantity,
-          })),
-        })),
-      })),
-    };
-  }
 }

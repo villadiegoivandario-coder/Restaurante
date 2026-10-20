@@ -6,7 +6,7 @@
   "background_color": "#0d0d0d",
   "theme_color": "#e52521",
   "icons": [{
-    "src": "logo.avif",
+    "src": "assets/logo.avif",
     "sizes": "192x192 512x512",
     "type": "image/avif"
   }]

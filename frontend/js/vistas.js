@@ -8,7 +8,7 @@
 const Vista = {
   filtroPedidos: 'activos', busquedaPedidos: '',
   tabFact: 'pendientes', busquedaFact: '',
-  tabMenu: 'productos', estacionKDS: 'todas',
+  tabMenu: 'productos',
 };
 const Vistas = {};
 const Despues = {};
@@ -17,12 +17,12 @@ const Despues = {};
 const pill = (e) => `<span class="pill ${e}">${ESTADOS[e]}</span>`;
 const lineaSabores = (it) => (it.sabores || []).map((s) => `${s.piezas} ${esc(s.nombre)}`).join(' · ');
 const totalPedido = (p) => Store.totales(p.items, false).total;
-const minutosDesde = (iso) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
 const vacio = (ic, texto) => `<div class="lista-vacia">${icono(ic)}<p>${esc(texto)}</p></div>`;
 
 function itemsHTML(items, max = 99) {
   const lis = items.slice(0, max).map((it) => `<li><strong>${it.cant}×</strong> ${esc(it.nombre)}${
     it.sabores && it.sabores.length ? `<div class="sabores-linea">${lineaSabores(it)}</div>` : ''}${
+    it.acompanamiento ? `<div class="sabores-linea">Acompañamiento: ${it.acompanamientoCantidad || 1} × ${esc(it.acompanamiento)}</div>` : ''}${
     it.nota ? `<div class="sabores-linea">“${esc(it.nota)}”</div>` : ''}</li>`);
   if (items.length > max) lis.push(`<li class="more">+ ${items.length - max} más…</li>`);
   return `<ul class="pedido-items">${lis.join('')}</ul>`;
@@ -57,12 +57,79 @@ function pedidoCard(p) {
 /* ============================================================
    INICIO
    ============================================================ */
+Vistas.erp = () => {
+  const stats = Store.estadisticas();
+  const bajoStock = stats.bajoStock.length;
+  return `
+  <div class="page-head"><div><h1>Panel ERP de Control</h1><p>Administración de inventario, menú, reportes y permisos</p></div></div>
+  <div class="stats">
+    <a class="stat" href="#/menu?tab=inventario"><span class="stat-label">Insumos con stock bajo</span><span class="stat-value ${bajoStock ? 'low' : 'ok'}">${bajoStock}</span></a>
+    <a class="stat" href="#/menu?tab=productos"><span class="stat-label">Productos del menú</span><span class="stat-value">${Store.db.menu.length}</span></a>
+    <a class="stat" href="#/reportes"><span class="stat-label">Facturas hoy</span><span class="stat-value">${stats.facturasHoy}</span></a>
+    <a class="stat" href="#/reportes"><span class="stat-label">Ventas hoy</span><span class="stat-value ok">${dinero(stats.ventasHoy)}</span></a>
+  </div>
+  ${bajoStock ? `<a class="alerta section" href="#/menu?tab=inventario">${icono('alerta')}<span><strong>Revisar inventario:</strong> ${bajoStock} insumos están en su mínimo o por debajo.</span></a>` : ''}
+  <section class="section"><h2 style="margin-bottom:12px">Gestión ERP</h2>
+    <div class="actions-grid">
+      <a class="action-card action-nuevo" href="#/menu?tab=inventario"><div><h3>Inventario</h3><p>Stock, recetas y lotes</p></div>${icono('menu')}</a>
+      <a class="action-card action-facturar" href="#/menu?tab=productos"><div><h3>Menú y precios</h3><p>Productos y sabores</p></div>${icono('editar')}</a>
+      <a class="action-card action-facturar" href="#/reportes"><div><h3>Reportes</h3><p>Ventas e indicadores</p></div>${icono('tendencia')}</a>
+      <a class="action-card action-facturar" href="#/auditoria"><div><h3>Auditoría de permisos</h3><p>Accesos y decisiones registrados</p></div>${icono('archivo')}</a>
+      <a class="action-card action-facturar" href="#/ajustes"><div><h3>Configuración ERP</h3><p>Datos del negocio y respaldos</p></div>${icono('ajustes')}</a>
+    </div>
+  </section>`;
+};
+
+Vistas.reportes = () => {
+  const stats = Store.estadisticas();
+  const inicio = new Date();
+  inicio.setDate(inicio.getDate() - 6);
+  inicio.setHours(0, 0, 0, 0);
+  const facturasSemana = Store.db.facturas.filter((factura) => new Date(factura.fecha) >= inicio);
+  const ventasSemana = facturasSemana.reduce((total, factura) => total + factura.total, 0);
+  const estados = Object.entries(ESTADOS).map(([estado, nombre]) => ({
+    nombre,
+    cantidad: Store.db.pedidos.filter((pedido) => pedido.estado === estado).length,
+  }));
+  return `
+  <div class="page-head"><div><h1>Reportes</h1><p>Resumen de ventas, pedidos e inventario</p></div></div>
+  <div class="stats">
+    <div class="stat"><span class="stat-label">Ventas hoy</span><span class="stat-value ok">${dinero(stats.ventasHoy)}</span></div>
+    <div class="stat"><span class="stat-label">Ventas últimos 7 días</span><span class="stat-value">${dinero(ventasSemana)}</span></div>
+    <div class="stat"><span class="stat-label">Facturas últimos 7 días</span><span class="stat-value">${facturasSemana.length}</span></div>
+    <div class="stat"><span class="stat-label">Alertas de stock</span><span class="stat-value ${stats.bajoStock.length ? 'low' : 'ok'}">${stats.bajoStock.length}</span></div>
+  </div>
+  <div class="two-col section">
+    <section class="card card-pad"><h2>Pedidos por estado</h2>
+      ${estados.map((estado) => `<div class="fila"><span>${esc(estado.nombre)}</span><strong>${estado.cantidad}</strong></div>`).join('')}
+    </section>
+    <section class="card card-pad"><h2>Productos más vendidos hoy</h2>
+      ${stats.top.length ? `<ol class="ranking">${stats.top.map(([nombre, cantidad]) => `<li><span>${esc(nombre)}</span><strong>${cantidad}</strong></li>`).join('')}</ol>` : '<p class="muted">No hay ventas facturadas hoy.</p>'}
+    </section>
+  </div>`;
+};
+
+Vistas.auditoria = () => {
+  const entries = PosAuth.getPermissionAudit();
+  return `
+  <div class="page-head"><div><h1>Auditoría de permisos</h1><p>Registro local de autenticaciones y decisiones de acceso</p></div></div>
+  <p class="hint section">Este registro se almacena en este navegador y no sustituye una auditoría centralizada en el servidor.</p>
+  <div class="card card-pad">
+    ${entries.length ? `<div class="audit-list">${entries.map((entry) => `<div class="fila audit-row">
+      <time class="pedido-meta">${esc(fechaHoraExacta(entry.timestamp))}</time>
+      <div><strong>${esc(entry.name)}</strong><div class="pedido-meta">${esc(entry.role)} · ${esc(entry.type)} · ${esc(entry.resource)}</div></div>
+      <span class="pill ${entry.allowed ? 'listo' : 'cancelado'}">${entry.allowed ? 'Permitido' : 'Denegado'}</span>
+    </div>`).join('')}</div>` : '<p class="muted">Aún no hay eventos de acceso registrados.</p>'}
+  </div>`;
+};
+
 Vistas.inicio = () => {
   const s = Store.estadisticas();
+  const cajero = PosAuth.can('cash:close');
   const ocupadas = Store.estadoMesas();
   const h = new Date().getHours();
   const saludo = h < 12 ? 'Buenos días' : h < 18 ? 'Buenas tardes' : 'Buenas noches';
-  const etiquetaMesa = { pendiente: 'Pedido nuevo', preparacion: 'En cocina', listo: 'Listo: servir', entregado: 'Por cobrar' };
+  const etiquetaMesa = { pendiente: 'Pedido nuevo', preparacion: 'En preparación', listo: 'Listo: servir', entregado: 'Por cobrar' };
   const mesas = Array.from({ length: Store.config.mesas }, (_, i) => {
     const m = `Mesa ${i + 1}`;
     const e = ocupadas[m];
@@ -73,20 +140,10 @@ Vistas.inicio = () => {
 
   return `
   <div class="page-head"><div><h1>${saludo}</h1><p>${new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}</p></div></div>
-  <div class="stats">
-    <a class="stat" href="#/cocina"><span class="stat-label">En cocina ${icono('cocina')}</span><span class="stat-value">${s.enCocina}</span></a>
-    <a class="stat" href="#/pedidos"><span class="stat-label">Listos para servir ${icono('campana')}</span><span class="stat-value">${s.listos}</span></a>
-    <a class="stat" href="#/facturacion"><span class="stat-label">Facturas hoy ${icono('factura')}</span><span class="stat-value">${s.facturasHoy}</span></a>
-    <a class="stat" href="#/facturacion"><span class="stat-label">Ventas hoy ${icono('tendencia')}</span><span class="stat-value ok">${dinero(s.ventasHoy)}</span></a>
-  </div>
-
-  ${s.bajoStock.length ? `<a class="alerta section" href="#/menu?tab=inventario">${icono('alerta')}
-    <span><strong>Inventario bajo:</strong> ${s.bajoStock.slice(0, 4).map((i) => esc(i.nombre)).join(', ')}${s.bajoStock.length > 4 ? ` y ${s.bajoStock.length - 4} más` : ''}</span></a>` : ''}
-
   <section class="section"><h2 style="margin-bottom:12px">Acciones rápidas</h2>
     <div class="actions-grid">
-      <a class="action-card action-nuevo" href="#/nuevo"><div><h3>Nuevo pedido</h3><p>Mesa, para llevar o domicilio</p></div>${icono('carrito')}</a>
-      <a class="action-card action-facturar" href="#/facturacion"><div><h3>Facturar${s.porFacturar ? ` (${s.porFacturar})` : ''}</h3><p>${s.porFacturar ? 'Pedidos entregados por cobrar' : 'Cobra y cierra la caja'}</p></div>${icono('factura')}</a>
+      <a class="action-card action-nuevo" href="#/nuevo"><div><h3>Nuevo pedido</h3><p>${PosAuth.can('delivery') ? 'Mesa, para llevar o domicilio' : 'Pedidos para mesa'}</p></div>${icono('carrito')}</a>
+      <a class="action-card action-facturar" href="#/facturacion"><div><h3>Facturar${s.porFacturar ? ` (${s.porFacturar})` : ''}</h3><p>${s.porFacturar ? 'Pedidos entregados por cobrar' : cajero ? 'Cobra y cierra la caja' : 'Cobra pedidos entregados'}</p></div>${icono('factura')}</a>
     </div>
   </section>
 
@@ -97,9 +154,6 @@ Vistas.inicio = () => {
       <div class="section-head" style="margin-top:28px"><h2>Pedidos recientes</h2><a href="#/pedidos" class="hint">Ver todos</a></div>
       ${recientes.length ? `<div class="pedidos-lista" style="grid-template-columns:1fr">${recientes.map(pedidoCard).join('')}</div>` : `<div class="card">${vacio('archivo', 'Aún no hay pedidos. Crea el primero.')}</div>`}
     </div>
-    <aside class="card card-pad"><h2 style="margin-bottom:14px">Más vendidos hoy</h2>
-      ${s.top.length ? `<ol class="ranking">${s.top.map(([n, c]) => `<li><span>${esc(n)}</span><strong>${c}</strong></li>`).join('')}</ol>` : '<p class="muted">Se mostrarán cuando factures ventas hoy.</p>'}
-    </aside>
   </div>`;
 };
 
@@ -156,7 +210,8 @@ function entrarNuevo(params) {
 
 Vistas.nuevo = () => {
   const ocupadas = Store.estadoMesas();
-  const opciones = [...Array.from({ length: Store.config.mesas }, (_, i) => `Mesa ${i + 1}`), 'Para llevar', 'Domicilio'];
+  const opciones = [...Array.from({ length: Store.config.mesas }, (_, i) => `Mesa ${i + 1}`)];
+  if (PosAuth.can('delivery')) opciones.push('Para llevar', 'Domicilio');
   if (borrador.mesa && !opciones.includes(borrador.mesa)) opciones.unshift(borrador.mesa);
   return `
   <div class="page-head"><div><h1>${borrador.editId ? `Editar pedido #${Store.pedido(borrador.editId)?.numero ?? ''}` : 'Nuevo pedido'}</h1>
@@ -175,18 +230,18 @@ Vistas.nuevo = () => {
       <div class="field"><span class="label">Mesa o tipo</span>
         <div class="mesa-grid" id="mesa-grid" role="group" aria-label="Selecciona mesa o tipo de pedido">
           ${opciones.map((o) => `<button type="button" class="mesa-option ${o === borrador.mesa ? 'activo' : ''}" data-accion="seleccionar-mesa" data-mesa="${esc(o)}" aria-pressed="${o === borrador.mesa}">${esc(o)}${ocupadas[o] && o !== borrador.mesa ? '<small>Ocupada</small>' : ''}</button>`).join('')}
-          <button type="button" class="mesa-option" data-accion="mesa-manual">Otra mesa…</button>
+          ${PosAuth.can('delivery') ? '<button type="button" class="mesa-option" data-accion="mesa-manual">Otra mesa…</button>' : ''}
         </div>
       </div>
-      <div class="field"><label for="f-cliente">Cliente (opcional)</label><input id="f-cliente" class="input" data-campo="cliente" value="${esc(borrador.cliente)}" maxlength="60" autocomplete="off"></div>
-      <div id="campos-domicilio" ${borrador.mesa === 'Domicilio' ? '' : 'hidden'}>
+      ${PosAuth.can('delivery') ? `<div class="field"><label for="f-cliente">Nombre del cliente${borrador.mesa === 'Domicilio' ? '' : ' (opcional)'}</label><input id="f-cliente" class="input" data-campo="cliente" value="${esc(borrador.cliente)}" maxlength="60" autocomplete="off"></div>
         <div class="field"><label for="f-tel">Teléfono</label><input id="f-tel" class="input" data-campo="telefono" value="${esc(borrador.telefono)}" inputmode="tel" maxlength="20"></div>
+      <div id="campos-domicilio" ${borrador.mesa === 'Domicilio' ? '' : 'hidden'}>
         <div class="field"><label for="f-dir">Dirección de entrega</label><input id="f-dir" class="input" data-campo="direccion" value="${esc(borrador.direccion)}" maxlength="120"></div>
-      </div>
+      </div>` : `<div class="field"><label for="f-cliente">Cliente (opcional)</label><input id="f-cliente" class="input" data-campo="cliente" value="${esc(borrador.cliente)}" maxlength="60" autocomplete="off"></div>`}
       <div id="carrito-items" class="cart-items"></div>
-      <div class="field"><label for="f-nota">Nota para cocina</label><textarea id="f-nota" class="input" data-campo="nota" maxlength="200" placeholder="Ej: sin apio, salsa aparte…">${esc(borrador.nota)}</textarea></div>
+      <div class="field"><label for="f-nota">Nota especial</label><textarea id="f-nota" class="input" data-campo="nota" maxlength="200" placeholder="Ej: salsa aparte, bien doradas…">${esc(borrador.nota)}</textarea></div>
       <div id="carrito-total" class="totales"></div>
-      <button class="btn btn-primary" style="width:100%;margin-top:14px;padding:12px" data-accion="guardar-pedido">${borrador.editId ? 'Guardar cambios' : 'Enviar a cocina'}</button>
+      <button class="btn btn-primary" style="width:100%;margin-top:14px;padding:12px" data-accion="guardar-pedido">${borrador.editId ? 'Guardar cambios' : 'Guardar pedido'}</button>
     </aside>
   </div>
   <button class="cart-fab" id="cart-fab" data-accion="ir-carrito" hidden></button>`;
@@ -204,7 +259,7 @@ function pintarMenuPOS() {
     return `<button class="producto ${cant ? 'en-carrito' : ''}" data-accion="agregar" data-pid="${esc(p.id)}" ${p.activo ? '' : 'disabled'}>
       ${cant ? `<span class="cantidad">${cant}</span>` : ''}
       <span class="nombre">${esc(p.nombre)}</span>
-      ${p.maxSabores ? `<span class="hint">${p.piezas} piezas · elige sabores</span>` : ''}
+      ${p.maxSabores ? `<span class="hint">${p.piezas} piezas · 1 sabor o 2 al 50/50${p.acompanamientoRequerido ? ` · ${p.acompanamientoCantidad} ${p.acompanamientoCantidad === 1 ? 'acompañamiento' : 'acompañamientos'}` : ''}</span>` : ''}
       <span class="precio">${dinero(p.precio)}${p.activo ? '' : ' · Agotado'}</span></button>`;
   }).join('') : `<div style="grid-column:1/-1">${vacio('buscar', 'No hay productos que coincidan.')}</div>`;
 }
@@ -216,6 +271,7 @@ function pintarCarrito() {
   cont.innerHTML = ls.length ? ls.map((l) => `<div class="cart-item">
       <div><div class="n">${esc(l.nombre)}</div>
         ${l.sabores && l.sabores.length ? `<div class="p">${lineaSabores(l)}</div>` : ''}
+        ${l.acompanamiento ? `<div class="p">Acompañamiento: ${l.acompanamientoCantidad || 1} × ${esc(l.acompanamiento)}</div>` : ''}
         ${l.nota ? `<div class="p">“${esc(l.nota)}”</div>` : ''}
         <div class="p">${dinero(l.precio * l.cant)}</div></div>
       <div class="qty">${l.sabores && l.sabores.length
@@ -237,56 +293,18 @@ function pintarCarrito() {
 Despues.nuevo = () => { pintarMenuPOS(); pintarCarrito(); };
 
 /* ============================================================
-   COCINA (KDS) — comandas por estación
-   ============================================================ */
-Vistas.cocina = () => `
-  <div class="page-head"><div><h1>Cocina</h1><p>Comandas activas. Se actualiza sola en todas las pestañas.</p></div>
-    <div class="chips" id="chips-estacion" role="group" aria-label="Estación"></div></div>
-  <div class="kds" id="kds"></div>`;
-
-function pintarCocina() {
-  const kds = $('#kds');
-  if (!kds) return;
-  const est = Vista.estacionKDS;
-  $('#chips-estacion').innerHTML = [['todas', 'Todas'], ...Object.entries(ESTACIONES)]
-    .map(([k, l]) => `<button class="chip ${est === k ? 'activo' : ''}" data-accion="estacion" data-estacion="${k}">${l}</button>`).join('');
-  const cols = [['pendiente', 'Por preparar'], ['preparacion', 'En preparación'], ['listo', 'Listos para servir']];
-  kds.innerHTML = cols.map(([estado, titulo]) => {
-    const ps = Store.db.pedidos.filter((p) => p.estado === estado)
-      .map((p) => ({ p, items: est === 'todas' ? p.items : p.items.filter((i) => i.estacion === est) }))
-      .filter((x) => x.items.length)
-      .sort((a, b) => a.p.creado.localeCompare(b.p.creado));
-    return `<section class="kds-col"><h2>${titulo} <span class="chip-count">${ps.length}</span></h2>
-      ${ps.map(({ p, items }) => {
-        const min = minutosDesde(p.creado);
-        const edad = estado === 'listo' ? '' : min >= 15 ? 'urgente' : min >= 10 ? 'atento' : '';
-        return `<article class="kds-card ${edad}">
-          <div class="kds-top"><strong>#${p.numero} · ${esc(p.mesa)}</strong><span class="kds-timer">${icono('reloj', 'icon-sm')} ${min} min</span></div>
-          ${p.cliente ? `<div class="hint">${esc(p.cliente)}</div>` : ''}
-          <ul class="kds-items">${items.map((it) => `<li><strong>${it.cant}× ${esc(it.nombre)}</strong>
-            ${(it.sabores || []).map((s) => `<div class="kds-sabor"><span>${s.piezas} × ${esc(s.nombre)}</span>${picante(s.picante)}</div>`).join('')}
-            ${it.nota ? `<div class="pedido-nota">${esc(it.nota)}</div>` : ''}</li>`).join('')}</ul>
-          ${p.nota ? `<div class="pedido-nota">${esc(p.nota)}</div>` : ''}
-          <button class="btn btn-primary" style="width:100%" data-accion="avanzar" data-id="${esc(p.id)}">${ACCION_SIGUIENTE[estado]}</button>
-        </article>`;
-      }).join('') || '<p class="muted kds-vacio">Sin comandas</p>'}
-    </section>`;
-  }).join('');
-}
-Despues.cocina = pintarCocina;
-
-/* ============================================================
    FACTURACIÓN Y CAJA
    ============================================================ */
 Vistas.facturacion = () => {
   const s = Store.estadisticas();
+  const caja = PosAuth.can('cash:close');
   return `
-  <div class="page-head"><div><h1>Facturación</h1><p>Cobra pedidos, consulta el historial y cierra la caja</p></div></div>
-  <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+  <div class="page-head"><div><h1>Facturación</h1><p>${caja ? 'Cobra pedidos, consulta el historial y cierra la caja' : 'Cobra los pedidos entregados y divide el total entre comensales'}</p></div></div>
+  ${caja ? `<div class="stats" style="grid-template-columns:repeat(3,1fr)">
     <div class="stat"><span class="stat-label">Pendientes por facturar</span><span class="stat-value">${s.porFacturar}</span></div>
     <div class="stat"><span class="stat-label">Facturas hoy</span><span class="stat-value">${s.facturasHoy}</span></div>
     <div class="stat"><span class="stat-label">Ventas hoy</span><span class="stat-value ok">${dinero(s.ventasHoy)}</span></div>
-  </div>
+  </div>` : ''}
   <div class="section"><div class="tabs" id="tabs-fact" role="tablist"></div><div id="fact-contenido"></div></div>`;
 };
 
@@ -296,7 +314,12 @@ function pintarFacturacion() {
   const pend = Store.db.pedidos.filter((p) => p.estado === 'entregado').sort((a, b) => a.actualizado.localeCompare(b.actualizado));
   const facts = Store.db.facturas;
   const sinCierre = facts.filter((f) => !f.cierreId).length;
-  const tabs = [['pendientes', `Pendientes de facturar (${pend.length})`], ['historial', `Historial (${facts.length})`], ['caja', `Cierre de caja${sinCierre ? ` (${sinCierre})` : ''}`]];
+  const tabs = [['pendientes', `Pendientes de facturar (${pend.length})`]];
+  if (PosAuth.can('cash:close')) {
+    tabs.push(['historial', `Historial (${facts.length})`]);
+    tabs.push(['caja', `Cierre de caja${sinCierre ? ` (${sinCierre})` : ''}`]);
+  }
+  if (!tabs.some(([key]) => key === Vista.tabFact)) Vista.tabFact = 'pendientes';
   $('#tabs-fact').innerHTML = tabs.map(([k, l]) => `<button class="tab ${Vista.tabFact === k ? 'activo' : ''}" role="tab" aria-selected="${Vista.tabFact === k}" data-accion="tab-fact" data-tab="${k}">${l}</button>`).join('');
 
   if (Vista.tabFact === 'pendientes') {
@@ -365,7 +388,7 @@ Despues.facturacion = pintarFacturacion;
    MENÚ (productos, sabores, inventario)
    ============================================================ */
 Vistas.menu = () => `
-  <div class="page-head"><div><h1>Menú e inventario</h1><p>Productos, sabores de alitas y stock por receta</p></div>
+  <div class="page-head"><div><h1>${PosAuth.can('menu:write') ? 'Menú e inventario' : 'Consulta de inventario'}</h1><p>${PosAuth.can('menu:write') ? 'Productos, sabores de alitas y stock por receta' : 'Existencias disponibles en modo de solo lectura'}</p></div>
     <div id="menu-cta"></div></div>
   <div class="tabs" id="tabs-menu" role="tablist"></div>
   <div id="menu-contenido"></div>`;
@@ -375,10 +398,14 @@ function pintarMenuAdmin() {
   if (!cont) return;
   const db = Store.db;
   const bajo = db.ingredientes.filter((i) => i.stock <= i.minimo).length;
-  const tabs = [['productos', `Productos (${db.menu.length})`], ['sabores', `Sabores (${db.sabores.length})`], ['inventario', `Inventario${bajo ? ` · ${bajo} bajo` : ''}`]];
+  const admin = PosAuth.can('menu:write');
+  if (!admin) Vista.tabMenu = 'inventario';
+  const tabs = admin
+    ? [['productos', `Productos (${db.menu.length})`], ['sabores', `Sabores (${db.sabores.length})`], ['inventario', `Inventario${bajo ? ` · ${bajo} bajo` : ''}`]]
+    : [['inventario', `Inventario${bajo ? ` · ${bajo} bajo` : ''}`]];
   $('#tabs-menu').innerHTML = tabs.map(([k, l]) => `<button class="tab ${Vista.tabMenu === k ? 'activo' : ''}" role="tab" aria-selected="${Vista.tabMenu === k}" data-accion="tab-menu" data-tab="${k}">${l}</button>`).join('');
   const cta = { productos: ['nuevo-producto', 'Nuevo producto'], sabores: ['nuevo-sabor', 'Nuevo sabor'], inventario: ['nuevo-ingrediente', 'Nuevo ingrediente'] }[Vista.tabMenu];
-  $('#menu-cta').innerHTML = `<button class="btn btn-primary" data-accion="${cta[0]}">+ ${cta[1]}</button>`;
+  $('#menu-cta').innerHTML = admin ? `<button class="btn btn-primary" data-accion="${cta[0]}">+ ${cta[1]}</button>` : '<span class="hint">Consulta de solo lectura</span>';
   const botones = (editar, borrar, id, extra = '') => `<div class="acciones">${extra}
     <button class="btn btn-ghost btn-icon" data-accion="${editar}" data-id="${esc(id)}" aria-label="Editar">${icono('editar', 'icon-sm')}</button>
     <button class="btn btn-ghost btn-icon btn-danger" data-accion="${borrar}" data-id="${esc(id)}" aria-label="Eliminar">${icono('basura', 'icon-sm')}</button></div>`;
@@ -389,7 +416,7 @@ function pintarMenuAdmin() {
     cont.innerHTML = cats.length ? cats.map((c) => `<div class="menu-cat"><h2>${esc(c)}</h2><div class="card">
       ${db.menu.filter((p) => p.categoria === c).map((p) => `<div class="menu-fila ${p.activo ? '' : 'off'}">
         <div><div class="nombre"><strong>${esc(p.nombre)}</strong></div>
-          <div class="pedido-meta">${p.maxSabores ? `${p.piezas} piezas · hasta ${p.maxSabores} sabores · ` : ''}${ESTACIONES[p.estacion] || ''}${p.receta.length ? ` · ${plural(p.receta.length, 'ingrediente', 'ingredientes')}` : ' · sin receta'}</div></div>
+          <div class="pedido-meta">${p.maxSabores ? `${p.piezas} piezas · hasta ${p.maxSabores} sabores · ` : ''}${p.receta.length ? `${plural(p.receta.length, 'ingrediente', 'ingredientes')}` : 'Sin receta'}</div></div>
         <span class="precio">${dinero(p.precio)}</span>
         ${interruptor('toggle-producto', p.id, p.activo, 'Disponible')}
         ${botones('editar-producto', 'eliminar-producto', p.id)}</div>`).join('')}</div></div>`).join('')
@@ -407,9 +434,9 @@ function pintarMenuAdmin() {
     cont.innerHTML = `<div class="card" style="margin-top:20px">${db.ingredientes.length ? [...db.ingredientes].sort((a, b) => (a.stock <= a.minimo ? 0 : 1) - (b.stock <= b.minimo ? 0 : 1) || a.nombre.localeCompare(b.nombre)).map((i) => {
       const low = i.stock <= i.minimo;
       return `<div class="menu-fila inv">
-        <div><strong>${esc(i.nombre)}</strong><div class="pedido-meta">Mínimo ${i.minimo} ${esc(i.unidad)}</div></div>
+        <div><strong>${esc(i.nombre)}</strong><div class="pedido-meta">Mínimo ${i.minimo} ${esc(i.unidad)}${i.numeroLote ? ` · Lote: ${esc(i.numeroLote)}` : ''}</div></div>
         <span class="stock ${low ? 'low' : ''}">${low ? icono('alerta', 'icon-sm') : ''}${i.stock.toLocaleString('es-CO')} ${esc(i.unidad)}</span>
-        ${botones('editar-ingrediente', 'eliminar-ingrediente', i.id, `<button class="btn btn-sm" data-accion="ajustar-stock" data-id="${esc(i.id)}">Ajustar</button>`)}</div>`;
+        ${admin ? botones('editar-ingrediente', 'eliminar-ingrediente', i.id, `<button class="btn btn-sm" data-accion="ajustar-stock" data-id="${esc(i.id)}">Ajustar</button>`) : ''}</div>`;
     }).join('') : vacio('menu', 'Aún no hay ingredientes.')}</div>`;
   }
 }
@@ -424,13 +451,14 @@ Vistas.ajustes = () => {
   <div class="page-head"><div><h1>Ajustes</h1><p>Datos del negocio, impuestos y respaldo</p></div></div>
   <div class="ajustes">
     <form class="card card-pad" data-form="config">
-      <h2>Negocio</h2>
+      <h2>Datos legales y del negocio</h2>
       <div class="field"><label for="a-nombre">Nombre</label><input id="a-nombre" name="nombre" class="input" value="${esc(c.nombre)}" required maxlength="50"></div>
+      <div class="field"><label for="a-legal">Nombre legal del establecimiento</label><input id="a-legal" name="nombreLegal" class="input" value="${esc(c.nombreLegal || '')}" required maxlength="100"></div>
       <div class="row">
-        <div class="field"><label for="a-nit">NIT</label><input id="a-nit" name="nit" class="input" value="${esc(c.nit)}" maxlength="25"></div>
-        <div class="field"><label for="a-tel">Teléfono</label><input id="a-tel" name="telefono" class="input" value="${esc(c.telefono)}" maxlength="25"></div>
+        <div class="field"><label for="a-nit">NIT del establecimiento</label><input id="a-nit" name="nit" class="input" value="${esc(c.nit)}" maxlength="25" required></div>
+        <div class="field"><label for="a-tel">Teléfono</label><input id="a-tel" name="telefono" class="input" value="${esc(c.telefono)}" maxlength="25" required></div>
       </div>
-      <div class="field"><label for="a-dir">Dirección</label><input id="a-dir" name="direccion" class="input" value="${esc(c.direccion)}" maxlength="100"></div>
+      <div class="field"><label for="a-dir">Dirección</label><input id="a-dir" name="direccion" class="input" value="${esc(c.direccion)}" maxlength="100" required></div>
       <div class="row">
         <div class="field"><label for="a-mesas">Número de mesas</label><input id="a-mesas" name="mesas" class="input" type="number" min="1" max="60" value="${c.mesas}" required></div>
         <div class="field"><label for="a-prop">Propina sugerida (%)</label><input id="a-prop" name="propina" class="input" type="number" min="0" max="30" value="${c.propina}" required></div>

@@ -65,11 +65,14 @@ button { cursor: pointer; }
 }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--font); font-weight: 800; font-size: 19px; letter-spacing: .025em; }
 .brand-logo {
-  display: block; width: 54px; height: 54px; flex: 0 0 54px; border: 2px solid var(--brand);
-  border-radius: 50%; object-fit: cover; object-position: center;
+  display: flex; align-items: center; justify-content: center; width: 48px; height: 48px;
+  flex: 0 0 48px; aspect-ratio: 1; overflow: hidden; border: 2px solid var(--brand);
+  border-radius: 50%; background: #000;
   box-shadow: 0 0 12px rgba(229, 37, 33, .78), 0 0 26px rgba(229, 37, 33, .48), 0 0 42px rgba(229, 37, 33, .25);
 }
+.brand-logo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .brand-title { color: var(--ink); }
+.role-badge { flex-shrink: 0; padding: 7px 10px; border: 1px solid color-mix(in srgb, var(--brand) 45%, var(--line)); border-radius: 999px; color: #f87171; font-size: 12px; font-weight: 700; }
 .nav { display: flex; gap: 4px; flex: 1; }
 .nav a {
   position: relative; display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 10px;
@@ -143,6 +146,7 @@ a.stat:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var
 .stat-label { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--muted); font-weight: 550; }
 .stat-value { font-size: 28px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .stat-value.ok { color: var(--ok); }
+.stat-value.low { color: var(--danger); }
 
 .actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .action-card {
@@ -314,6 +318,8 @@ dialog.dialog-sm { width: min(400px, calc(100vw - 24px)); }
 .ticket { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; color: #111; background: #fff; padding: 20px; border-radius: 10px; border: 1px dashed #bbb; }
 .ticket h2 { font-family: var(--serif); text-align: center; font-size: 20px; color: #111; }
 .ticket .c { text-align: center; color: #444; }
+.ticket-logo { display: flex; justify-content: center; margin-bottom: 8px; }
+.ticket-logo img { display: block; width: 72px; height: 72px; aspect-ratio: 1; object-fit: cover; object-position: center; border-radius: 50%; }
 .ticket hr { border: none; border-top: 1px dashed #999; margin: 12px 0; }
 .ticket table { width: 100%; border-collapse: collapse; }
 .ticket td { padding: 2px 0; vertical-align: top; }
@@ -390,7 +396,6 @@ dialog.dialog-sm { width: min(400px, calc(100vw - 24px)); }
 @media (max-width: 380px) {
   .topbar { gap: 8px; padding: 8px 10px; }
   .brand { gap: 7px; font-size: 14px; }
-  .brand-logo { width: 32px; height: 32px; }
   .btn-logout { gap: 5px; padding: 6px 7px; font-size: 11px; }
   .btn-logout .icon { width: 15px; height: 15px; }
 }
@@ -408,7 +413,7 @@ dialog.dialog-sm { width: min(400px, calc(100vw - 24px)); }
 }
 
 /* ============================================================
-   Añadidos: alitas, cocina (KDS), inventario
+   Alitas e inventario
    ============================================================ */
 [hidden] { display: none !important; }
 
@@ -435,29 +440,22 @@ dialog.dialog-sm { width: min(400px, calc(100vw - 24px)); }
 .cfg-resumen.completo { background: var(--ok-soft); color: var(--ok); }
 .receta-fila { display: grid; grid-template-columns: 1fr 110px auto; gap: 8px; margin-bottom: 8px; align-items: center; }
 
-/* Cocina (KDS) */
-.kds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
-.kds-col { background: var(--surface-2); border-radius: var(--radius); padding: 12px; display: grid; gap: 12px; align-content: start; min-height: 160px; }
-.kds-col h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); display: flex; align-items: center; gap: 8px; }
-.chip-count { background: var(--surface); border-radius: 99px; padding: 1px 9px; font-size: 12px; color: var(--ink); }
-.kds-card { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--ok); border-radius: 12px; padding: 14px; display: grid; gap: 10px; box-shadow: var(--shadow); }
-.kds-card.atento { border-left-color: #e0a000; }
-.kds-card.urgente { border-left-color: var(--danger); background: color-mix(in srgb, var(--danger-soft) 55%, var(--surface)); }
-.kds-top { display: flex; justify-content: space-between; align-items: center; font-size: 16px; }
-.kds-timer { display: inline-flex; gap: 4px; align-items: center; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
-.kds-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 16px; }
-.kds-sabor { display: flex; justify-content: space-between; align-items: center; font-size: 15px; padding: 2px 0 2px 10px; color: var(--ink); }
-.kds-vacio { text-align: center; padding: 24px 0; }
-
 /* Inventario */
 .menu-fila.inv { grid-template-columns: 1fr auto auto; }
 .stock { font-weight: 650; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 6px; }
 .stock.low { color: var(--danger); }
 
-@media (max-width: 900px) { .kds { grid-template-columns: 1fr; } }
 @media (max-width: 720px) {
   .menu-fila { grid-template-columns: 1fr auto; row-gap: 8px; }
   .menu-fila.inv { grid-template-columns: 1fr auto; }
   .receta-fila { grid-template-columns: 1fr 90px auto; }
   .stats[style] { grid-template-columns: 1fr !important; }
+}
+
+.audit-row { grid-template-columns: minmax(130px, .8fr) minmax(0, 1.5fr) auto; }
+.audit-row time { color: var(--muted); }
+
+@media (max-width: 720px) {
+  .audit-row { grid-template-columns: 1fr auto; }
+  .audit-row time { grid-column: 1 / -1; }
 }

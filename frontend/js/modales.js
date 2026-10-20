@@ -10,7 +10,7 @@ const cabeceraModal = (titulo, sub = '') => `
 
 const filasItems = (items) => `<table class="items-tabla"><tbody>${items.map((i) => `<tr>
   <td>${i.cant}×</td>
-  <td>${esc(i.nombre)}${i.sabores && i.sabores.length ? `<div class="sabores-linea">${(i.sabores).map((s) => `${s.piezas} ${esc(s.nombre)} ${picante(s.picante)}`).join('<br>')}</div>` : ''}${i.nota ? `<div class="sabores-linea">“${esc(i.nota)}”</div>` : ''}</td>
+  <td>${esc(i.nombre)}${i.sabores && i.sabores.length ? `<div class="sabores-linea">${(i.sabores).map((s) => `${s.piezas} ${esc(s.nombre)} ${picante(s.picante)}`).join('<br>')}</div>` : ''}${i.acompanamiento ? `<div class="sabores-linea">Acompañamiento: ${i.acompanamientoCantidad || 1} × ${esc(i.acompanamiento)}</div>` : ''}${i.nota ? `<div class="sabores-linea">Modificador: “${esc(i.nota)}”</div>` : ''}</td>
   <td>${dinero(i.precio * i.cant)}</td></tr>`).join('')}</tbody></table>`;
 
 /* ---------- Detalle de pedido ---------- */
@@ -19,24 +19,48 @@ function abrirDetalle(id) {
   if (!p) return;
   const t = Store.totales(p.items, false);
   const activo = ACTIVOS.includes(p.estado);
+  const creador = p.creadoPor;
+  const tipo = p.tipo === 'domicilio' || p.mesa === 'Domicilio' ? 'Domicilio' : p.tipo === 'llevar' || p.mesa === 'Para llevar' ? 'Para llevar' : `Mesa ${p.mesa.replace(/^Mesa\s*/i, '')}`;
   abrirModal(`
-    ${cabeceraModal(esc(p.mesa), `Pedido #${p.numero} · ${fechaHora(p.creado)}`)}
+    ${cabeceraModal(esc(tipo), `Pedido #${p.numero} · ${fechaHoraExacta(p.creado)}`)}
+    <div class="pedido-meta">ID: ${esc(p.id)}</div>
+    <div class="pedido-meta">Atendido por: ${esc(creador?.nombre || 'Sin registro')} ${creador?.rol ? `· ${esc(PosAuth.roleLabel(creador.rol) || creador.rol)}` : ''}</div>
     <div style="margin-bottom:14px">${pill(p.estado)}</div>
     ${[p.cliente && `Cliente: ${esc(p.cliente)}`, p.telefono && `Tel: ${esc(p.telefono)}`, p.direccion && `Dirección: ${esc(p.direccion)}`].filter(Boolean).map((x) => `<div class="muted">${x}</div>`).join('')}
     <div style="height:10px"></div>
     ${filasItems(p.items)}
     ${p.nota ? `<div class="pedido-nota" style="margin-bottom:14px">Nota: ${esc(p.nota)}</div>` : ''}
+    ${p.anulacion ? `<div class="pedido-nota" style="margin-bottom:14px">Anulado con PIN por ${esc(p.anulacion.autorizadoPor)} · ${fechaHoraExacta(p.anulacion.fecha)}</div>` : ''}
     <div class="timeline">${p.historial.map((h) => `${ESTADOS[h.estado]} ${hora(h.fecha)}`).join(' → ')}</div>
     <div class="totales">
       ${t.incluido ? '' : `<div><span>Subtotal</span><span>${dinero(t.subtotal)}</span></div><div><span>Impuesto consumo (${t.tasa}%)</span><span>${dinero(t.impuesto)}</span></div>`}
       <div class="total"><span style="color:inherit">Total</span><span>${dinero(t.total)}</span></div>
     </div>
     <div class="modal-actions">
-      ${activo ? `<button class="btn btn-danger" data-accion="cancelar" data-id="${esc(p.id)}">Cancelar pedido</button>
+      ${activo ? `<button class="btn btn-danger" data-accion="cancelar" data-id="${esc(p.id)}">Anular comanda (PIN admin)</button>
         <button class="btn" data-accion="editar" data-id="${esc(p.id)}">${icono('editar', 'icon-sm')} Editar</button>` : ''}
       ${p.estado === 'facturado' && p.facturaId ? `<button class="btn" data-accion="ver-factura" data-id="${esc(p.facturaId)}">Ver comprobante</button>` : ''}
       ${botonesEstado(p, false)}
     </div>`);
+}
+
+function abrirAutorizacionAnulacion(id) {
+    const p = Store.pedido(id);
+    if (!p || !ACTIVOS.includes(p.estado)) {
+      toast('Esta comanda ya no puede anularse.', 'error');
+      return;
+    }
+    abrirModal(`
+      ${cabeceraModal(`Autorizar anulación #${p.numero}`, 'Se requiere el PIN de administrador')}
+      <form data-form="anular-pedido" data-id="${esc(p.id)}">
+        <div class="field"><label for="anular-pin">PIN de administrador</label>
+          <input id="anular-pin" name="pin" class="input touch-numeric" type="password" inputmode="none" readonly autocomplete="off" required minlength="4" maxlength="4" data-secret="true" aria-label="PIN de administrador"></div>
+        <p class="hint">La acción queda registrada y devuelve el consumo al inventario.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn" data-accion="cerrar-modal">Volver</button>
+          <button type="submit" class="btn btn-danger">Validar y anular</button>
+        </div>
+      </form>`);
 }
 
 /* ---------- Sabores de alitas ---------- */
@@ -45,62 +69,100 @@ let cfgAlitas = null;
 function abrirConfigAlitas(pid, lid) {
   const p = Store.producto(pid);
   const linea = lid ? borrador.lineas.find((l) => l.lid === lid) : null;
-  cfgAlitas = { pid, lid: lid || null, asign: {}, nota: linea ? linea.nota || '' : '' };
-  if (linea) linea.sabores.forEach((s) => { cfgAlitas.asign[s.fid] = s.piezas; });
+  cfgAlitas = {
+    pid,
+    lid: lid || null,
+    saborA: linea?.sabores?.[0]?.fid || '',
+    saborB: linea?.sabores?.[1]?.fid || '',
+    acompanamiento: linea?.acompanamiento || '',
+    nota: linea ? linea.nota || '' : '',
+  };
   const sabores = Store.db.sabores.filter((s) => s.activo);
   abrirModal(`
-    ${cabeceraModal(esc(p.nombre), `${p.piezas} piezas · hasta ${plural(p.maxSabores, 'sabor', 'sabores')} · ${dinero(p.precio)}`)}
-    ${sabores.length ? sabores.map((s) => `<div class="sabor-fila">
-      <div><strong>${esc(s.nombre)}</strong> ${picante(s.picante)}<div class="hint">${NIVELES_PICANTE[s.picante]}</div></div>
-      <div class="qty"><button data-accion="sabor-menos" data-fid="${esc(s.id)}" aria-label="Quitar pieza de ${esc(s.nombre)}">${icono('menos', 'icon-sm')}</button>
-        <span id="sq-${esc(s.id)}">0</span>
-        <button data-accion="sabor-mas" data-fid="${esc(s.id)}" aria-label="Agregar pieza de ${esc(s.nombre)}">${icono('mas', 'icon-sm')}</button></div></div>`).join('')
+    ${cabeceraModal(esc(p.nombre), `${p.piezas} piezas · un sabor completo o dos sabores 50/50 · ${dinero(p.precio)}`)}
+    ${sabores.length ? `<div class="field"><label for="cfg-sabor-a">Sabor A</label>
+      <select id="cfg-sabor-a" class="input" required>
+        <option value="">Selecciona un sabor</option>
+        ${sabores.map((s) => `<option value="${esc(s.id)}" ${cfgAlitas.saborA === s.id ? 'selected' : ''}>${esc(s.nombre)} · ${NIVELES_PICANTE[s.picante]}</option>`).join('')}
+      </select></div>
+      <div class="field"><label for="cfg-sabor-b">Sabor B (opcional, mitad de las piezas)</label>
+      <select id="cfg-sabor-b" class="input">
+        <option value="">Usar solo Sabor A</option>
+        ${sabores.map((s) => `<option value="${esc(s.id)}" ${cfgAlitas.saborB === s.id ? 'selected' : ''}>${esc(s.nombre)} · ${NIVELES_PICANTE[s.picante]}</option>`).join('')}
+      </select></div>`
       : vacio('alerta', 'No hay sabores disponibles. Actívalos en Menú → Sabores.')}
+    ${p.acompanamientoRequerido ? `<div class="field"><label for="cfg-acompanamiento">Acompañamiento obligatorio · ${p.acompanamientoCantidad} ${p.acompanamientoCantidad === 1 ? 'porción' : 'porciones'}</label>
+      <select id="cfg-acompanamiento" class="input" required>
+        <option value="">Selecciona Papas o Yuquitas</option>
+        ${['Papas', 'Yuquitas'].map((nombre) => `<option value="${nombre}" ${cfgAlitas.acompanamiento === nombre ? 'selected' : ''}>${nombre}</option>`).join('')}
+      </select></div>` : ''}
     <div id="cfg-resumen" class="cfg-resumen"></div>
     <div class="field"><label for="cfg-nota">Nota (opcional)</label><input id="cfg-nota" class="input" maxlength="80" placeholder="Ej: bien doradas" value="${esc(cfgAlitas.nota)}"></div>
     <div class="modal-actions">
       <button class="btn" data-accion="cerrar-modal">Cancelar</button>
       <button class="btn btn-primary" id="cfg-ok" data-accion="confirmar-alitas">${lid ? 'Guardar' : 'Confirmar e ir a pedido'}</button>
     </div>`);
-  refrescarConfigAlitas();
+  const saborA = $('#cfg-sabor-a');
+  const saborB = $('#cfg-sabor-b');
+  if (saborA && saborB) {
+    saborA.addEventListener('change', (event) => {
+      cfgAlitas.saborA = event.target.value;
+      actualizarConfigAlitas();
+    });
+    saborB.addEventListener('change', (event) => {
+      cfgAlitas.saborB = event.target.value;
+      actualizarConfigAlitas();
+    });
+  }
+  if (p.acompanamientoRequerido) {
+    $('#cfg-acompanamiento').addEventListener('change', (event) => {
+      cfgAlitas.acompanamiento = event.target.value;
+      actualizarConfigAlitas();
+    });
+  }
+  $('#cfg-nota').addEventListener('input', (event) => { cfgAlitas.nota = event.target.value; });
+  actualizarConfigAlitas();
 }
 
-function refrescarConfigAlitas() {
+function actualizarConfigAlitas() {
   if (!cfgAlitas) return;
   const p = Store.producto(cfgAlitas.pid);
-  const a = cfgAlitas.asign;
-  const total = Object.values(a).reduce((s, n) => s + n, 0);
-  const distintos = Object.values(a).filter((n) => n > 0).length;
-  Store.db.sabores.filter((s) => s.activo).forEach((s) => {
-    const n = a[s.id] || 0;
-    const el = $(`#sq-${CSS.escape(s.id)}`);
-    if (el) el.textContent = n;
-    const mas = $(`[data-accion="sabor-mas"][data-fid="${CSS.escape(s.id)}"]`);
-    if (mas) mas.disabled = total >= p.piezas || (n === 0 && distintos >= p.maxSabores);
-    const menos = $(`[data-accion="sabor-menos"][data-fid="${CSS.escape(s.id)}"]`);
-    if (menos) menos.disabled = n === 0;
-  });
-  const faltan = p.piezas - total;
+  const valido = Boolean(
+    cfgAlitas.saborA
+    && (!cfgAlitas.saborB || cfgAlitas.saborB !== cfgAlitas.saborA)
+    && (!p.acompanamientoRequerido || cfgAlitas.acompanamiento),
+  );
   const r = $('#cfg-resumen');
-  r.className = `cfg-resumen ${faltan === 0 ? 'completo' : ''}`;
-  r.textContent = faltan === 0 ? `Listo: ${p.piezas} de ${p.piezas} piezas asignadas` : `Te faltan ${faltan} alitas por asignar sabor`;
-  $('#cfg-ok').disabled = faltan !== 0;
+  r.className = `cfg-resumen ${valido ? 'completo' : ''}`;
+  if (!cfgAlitas.saborA) r.textContent = 'Selecciona un sabor para continuar.';
+  else if (cfgAlitas.saborB === cfgAlitas.saborA) r.textContent = 'Los dos sabores deben ser distintos.';
+  else if (p.acompanamientoRequerido && !cfgAlitas.acompanamiento) r.textContent = 'Selecciona el acompañamiento obligatorio.';
+  else if (cfgAlitas.saborB) r.textContent = `${p.piezas / 2} alitas de cada sabor · división 50/50`;
+  else r.textContent = `${p.piezas} alitas de un solo sabor`;
+  $('#cfg-ok').disabled = !valido;
 }
 
 function confirmarAlitas() {
   const c = cfgAlitas;
   const p = Store.producto(c.pid);
-  const sabores = Object.entries(c.asign).filter(([, n]) => n > 0).map(([fid, piezas]) => {
+  if (!c.saborA || (c.saborB && c.saborB === c.saborA) || (p.acompanamientoRequerido && !c.acompanamiento)) {
+    actualizarConfigAlitas();
+    return;
+  }
+  const sabores = [c.saborA, c.saborB].filter(Boolean).map((fid) => {
     const s = Store.sabor(fid);
-    return { fid, nombre: s.nombre, piezas, picante: s.picante };
+    return { fid, nombre: s.nombre, piezas: c.saborB ? p.piezas / 2 : p.piezas, picante: s.picante };
   });
-  if (sabores.reduce((s, x) => s + x.piezas, 0) !== p.piezas) return;
+  if (sabores.length > 2 || sabores.reduce((s, x) => s + x.piezas, 0) !== p.piezas) return;
   const nota = $('#cfg-nota').value.trim();
   if (c.lid) {
     const l = borrador.lineas.find((x) => x.lid === c.lid);
-    if (l) Object.assign(l, { sabores, nota });
+    if (l) Object.assign(l, { sabores, nota, acompanamiento: c.acompanamiento, acompanamientoCantidad: p.acompanamientoCantidad || 1 });
   } else {
-    borrador.lineas.push({ lid: uid(), pid: p.id, nombre: p.nombre, precio: p.precio, cant: 1, sabores, nota, estacion: p.estacion });
+    borrador.lineas.push({
+      lid: uid(), pid: p.id, nombre: p.nombre, precio: p.precio, cant: 1, sabores, nota,
+      acompanamiento: c.acompanamiento, acompanamientoCantidad: p.acompanamientoCantidad || 1,
+    });
   }
   cfgAlitas = null;
   cerrarModal();
@@ -112,14 +174,18 @@ function abrirFacturar(id) {
   const p = Store.pedido(id);
   if (!p || p.estado !== 'entregado') { toast('Este pedido no está listo para facturar.', 'error'); return; }
   const pct = Store.config.propina;
+  const domicilio = p.tipo === 'domicilio' || p.mesa === 'Domicilio';
   const m = abrirModal(`
     ${cabeceraModal(`Facturar · ${esc(p.mesa)}`, `Pedido #${p.numero}`)}
     <form data-form="facturar" data-id="${esc(p.id)}">
       ${filasItems(p.items)}
       <div class="row">
-        <div class="field"><label for="fa-cliente">Cliente</label><input id="fa-cliente" name="cliente" class="input" value="${esc(p.cliente)}" maxlength="60" autocomplete="off"></div>
-        <div class="field"><label for="fa-nit">NIT / Cédula</label><input id="fa-nit" name="nit" class="input" maxlength="20" inputmode="numeric" autocomplete="off"></div>
+        <div class="field"><label for="fa-cliente">Nombre del cliente</label><input id="fa-cliente" name="cliente" class="input" value="${esc(p.cliente)}" maxlength="60" autocomplete="name" required></div>
+        <div class="field"><label for="fa-nit">Cédula / NIT del cliente</label><input id="fa-nit" name="nit" class="input" maxlength="20" inputmode="numeric" autocomplete="off" required></div>
       </div>
+      ${domicilio ? `<div class="row"><div class="field"><label>Teléfono de entrega</label><input class="input" value="${esc(p.telefono)}" readonly></div>
+        <div class="field"><label>Dirección de entrega</label><input class="input" value="${esc(p.direccion)}" readonly></div></div>` : ''}
+      <p class="hint">Para expedir el comprobante, el administrador debe completar nombre legal, NIT y dirección del establecimiento en Ajustes.</p>
       <div class="field"><span class="label">Método de pago</span>
         <div class="metodos">${METODOS.map((x, i) => `<label><input type="radio" name="metodo" value="${x}" ${i === 0 ? 'checked' : ''}><span>${x[0].toUpperCase() + x.slice(1)}</span></label>`).join('')}</div></div>
       <div class="field" id="campo-efectivo"><label for="fa-recibido">Efectivo recibido (opcional)</label>
@@ -156,19 +222,27 @@ function actualizarFacturar(form) {
 function abrirTicket(id) {
   const f = Store.factura(id);
   if (!f) return;
-  const c = Store.config;
   abrirModal(`
     <div class="ticket">
-      <h2>${esc(c.nombre)}</h2>
-      <div class="c">${[c.nit && `NIT ${esc(c.nit)}`, esc(c.direccion), esc(c.telefono)].filter(Boolean).join(' · ')}</div>
+      <div class="ticket-logo"><img src="assets/logo.avif" alt="Llama's Wings"></div>
+      <h2>${esc(f.nombreLegal)}</h2>
+      <div class="c">${[`NIT ${esc(f.nitEmisor)}`, esc(f.direccionEmisor), esc(f.telefonoEmisor)].join(' · ')}</div>
       <hr>
-      <div class="t-line"><strong>Comprobante F-${pad(f.numero)}</strong><span>${fechaHora(f.fecha)}</span></div>
-      <div>${esc(f.mesa)} · Pedido #${f.pedidoNumero}</div>
-      ${f.cliente ? `<div>Cliente: ${esc(f.cliente)}${f.nit ? ` · ${esc(f.nit)}` : ''}</div>` : ''}
+      <div class="t-line"><strong>Factura F-${pad(f.numero)}</strong><span>${fechaHoraExacta(f.fecha)}</span></div>
+      <div>${esc(f.mesa)} · Pedido #${f.pedidoNumero} · ID ${esc(f.pedidoId)}</div>
+      <div>Tipo: ${f.tipo === 'domicilio' ? 'Domicilio' : f.tipo === 'llevar' ? 'Para llevar' : 'Mesa'}</div>
+      <div>Terminal: ${esc(f.terminalId)}</div>
+      <div>Atendido por: ${esc(f.creadoPor?.nombre || 'Sin registro')}${f.creadoPor?.rol ? ` · ${esc(PosAuth.roleLabel(f.creadoPor.rol) || f.creadoPor.rol)}` : ''}</div>
+      <div>Facturado por: ${esc(f.facturadoPor.nombre)} · ${esc(PosAuth.roleLabel(f.facturadoPor.rol) || f.facturadoPor.rol)}</div>
+      <div>Pedido creado: ${fechaHoraExacta(f.pedidoCreado || f.fecha)}</div>
+      <div>Cliente: ${esc(f.cliente)} · Cédula / NIT: ${esc(f.nit)}</div>
+      ${f.telefono ? `<div>Teléfono: ${esc(f.telefono)}</div>` : ''}
+      ${f.direccion ? `<div>Dirección: ${esc(f.direccion)}</div>` : ''}
       <hr>
-      <table>${f.items.map((i) => `<tr><td>${i.cant}</td><td>${esc(i.nombre)}${(i.sabores || []).map((s) => `<br><small>&nbsp;&nbsp;${s.piezas} ${esc(s.nombre)}</small>`).join('')}</td><td>${dinero(i.precio * i.cant)}</td></tr>`).join('')}</table>
+      <table>${f.items.map((i) => `<tr><td>${i.cant}</td><td>${esc(i.nombre)}${(i.sabores || []).map((s) => `<br><small>&nbsp;&nbsp;${s.piezas} de ${esc(s.nombre)}</small>`).join('')}${i.acompanamiento ? `<br><small>&nbsp;&nbsp;Acompañamiento: ${i.acompanamientoCantidad || 1} × ${esc(i.acompanamiento)}</small>` : ''}${i.nota ? `<br><strong>Modificador: ${esc(i.nota)}</strong>` : ''}</td><td>${dinero(i.precio * i.cant)}</td></tr>`).join('')}</table>
+      ${f.nota ? `<p style="font-weight:700">Nota especial: ${esc(f.nota)}</p>` : ''}
       <hr>
-      ${f.incluido ? '' : `<div class="t-line"><span>Subtotal</span><span>${dinero(f.subtotal)}</span></div>`}
+      <div class="t-line"><span>Subtotal</span><span>${dinero(f.subtotal)}</span></div>
       <div class="t-line"><span>${f.incluido ? 'Incluye imp. consumo' : 'Imp. consumo'} (${f.tasa}%)</span><span>${dinero(f.impuesto)}</span></div>
       ${f.propina ? `<div class="t-line"><span>Propina</span><span>${dinero(f.propina)}</span></div>` : ''}
       <div class="t-line t-total"><span>TOTAL</span><span>${dinero(f.total)}</span></div>
@@ -194,7 +268,7 @@ const filaReceta = (r = {}) => `<div class="receta-fila">
   <button type="button" class="btn btn-ghost btn-icon btn-danger" data-accion="quitar-fila" aria-label="Quitar ingrediente">${icono('x', 'icon-sm')}</button></div>`;
 
 function abrirProducto(id) {
-  const p = id ? Store.producto(id) : { nombre: '', categoria: '', precio: '', piezas: 0, maxSabores: 0, estacion: 'armado', receta: [] };
+  const p = id ? Store.producto(id) : { nombre: '', categoria: '', precio: '', piezas: 0, maxSabores: 0, receta: [] };
   const cats = [...new Set(Store.db.menu.map((x) => x.categoria))];
   abrirModal(`
     ${cabeceraModal(id ? 'Editar producto' : 'Nuevo producto')}
@@ -204,11 +278,10 @@ function abrirProducto(id) {
         <div class="field"><label for="p-cat">Categoría</label><input id="p-cat" name="categoria" class="input" list="lista-cats" value="${esc(p.categoria)}" required maxlength="30" autocomplete="off"><datalist id="lista-cats">${cats.map((c) => `<option value="${esc(c)}">`).join('')}</datalist></div>
         <div class="field"><label for="p-precio">Precio (COP)</label><input id="p-precio" name="precio" class="input" type="number" min="0" step="100" value="${esc(p.precio)}" required inputmode="numeric"></div>
       </div>
-      <div class="field"><label for="p-est">Estación de cocina</label><select id="p-est" name="estacion" class="input">${Object.entries(ESTACIONES).map(([k, v]) => `<option value="${k}" ${k === p.estacion ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
       <label class="check" style="margin-bottom:14px"><input type="checkbox" name="conSabores" ${p.maxSabores ? 'checked' : ''}> Se sirve con sabores (alitas)</label>
       <div class="row" id="campos-sabores" ${p.maxSabores ? '' : 'hidden'}>
         <div class="field"><label for="p-piezas">Piezas por porción</label><input id="p-piezas" name="piezas" class="input" type="number" min="1" max="100" value="${p.piezas || 10}"></div>
-        <div class="field"><label for="p-max">Máx. sabores distintos</label><input id="p-max" name="maxSabores" class="input" type="number" min="1" max="6" value="${p.maxSabores || 2}"></div>
+        <div class="field"><label for="p-max">Máx. sabores distintos</label><input id="p-max" name="maxSabores" class="input" type="number" min="1" max="2" value="${Math.min(p.maxSabores || 2, 2)}"></div>
       </div>
       <div class="field"><span class="label">Receta (se descuenta del inventario por cada unidad vendida)</span>
         <div id="receta-filas">${p.receta.map(filaReceta).join('')}</div>
@@ -233,7 +306,7 @@ function abrirSabor(id) {
 }
 
 function abrirIngrediente(id) {
-  const i = id ? Store.ingrediente(id) : { nombre: '', unidad: 'g', stock: 0, minimo: 0 };
+  const i = id ? Store.ingrediente(id) : { nombre: '', unidad: 'g', stock: 0, minimo: 0, numeroLote: '' };
   abrirModal(`
     ${cabeceraModal(id ? 'Editar ingrediente' : 'Nuevo ingrediente')}
     <form data-form="ingrediente" data-id="${esc(id || '')}">
@@ -243,6 +316,7 @@ function abrirIngrediente(id) {
         <div class="field"><label for="i-stock">Stock actual</label><input id="i-stock" name="stock" class="input" type="number" min="0" step="any" value="${i.stock}" required></div>
       </div>
       <div class="field"><label for="i-min">Alertar cuando quede (mínimo)</label><input id="i-min" name="minimo" class="input" type="number" min="0" step="any" value="${i.minimo}" required></div>
+      <div class="field"><label for="i-lote">Número de serie / código de lote</label><input id="i-lote" name="numeroLote" class="input" value="${esc(i.numeroLote || '')}" maxlength="80" autocomplete="off" placeholder="Ej: LOTE-2026-001"></div>
       <div class="modal-actions"><button type="button" class="btn" data-accion="cerrar-modal">Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></div>
     </form>`);
 }

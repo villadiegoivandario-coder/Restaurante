@@ -12,10 +12,17 @@ const ESTADOS = {
 };
 const ACTIVOS = ['pendiente', 'preparacion', 'listo', 'entregado'];
 const SIGUIENTE = { pendiente: 'preparacion', preparacion: 'listo', listo: 'entregado' };
-const ACCION_SIGUIENTE = { pendiente: 'Empezar a preparar', preparacion: 'Marcar listo', listo: 'Marcar entregado' };
-const ESTACIONES = { freidora: 'Freidoras', armado: 'Armado', barra: 'Bebidas' };
+const ACCION_SIGUIENTE = { pendiente: 'Iniciar preparación', preparacion: 'Marcar listo', listo: 'Marcar entregado' };
 const NIVELES_PICANTE = ['Sin picante', 'Suave', 'Medio', 'Picante', 'Muy picante', 'Fuego'];
 const METODOS = ['efectivo', 'tarjeta', 'transferencia'];
+const VERSION_MENU_OFICIAL = 3;
+const IDS_MENU_INICIAL_ANTERIOR = new Set([
+  'p_a6', 'p_a10', 'p_a16', 'p_papas', 'p_blue', 'p_ranch',
+  'p_gaseosa', 'p_limonada', 'p_cerveza', 'p_agua',
+]);
+const IDS_SABORES_INICIALES_ANTERIORES = new Set([
+  's_bbq', 's_miel', 's_bufalo', 's_maracuya', 's_limon', 's_habanero',
+]);
 
 const Store = (() => {
   const KEY = 'alitas-pos.v2';
@@ -24,45 +31,72 @@ const Store = (() => {
 
   /* ---------- Datos iniciales ---------- */
   function datosIniciales() {
-    const ing = (id, nombre, unidad, stock, minimo) => ({ id, nombre, unidad, stock, minimo });
+    const ing = (id, nombre, unidad, stock, minimo) => ({ id, nombre, unidad, stock, minimo, numeroLote: '' });
     const sab = (id, nombre, picante, ingId) => ({ id, nombre, picante, activo: true, ing: ingId, porPieza: 8 });
-    const prod = (o) => ({ activo: true, piezas: 0, maxSabores: 0, receta: [], estacion: 'armado', ...o });
+    const prod = (o) => ({ activo: true, piezas: 0, maxSabores: 0, receta: [], ...o });
+    const bebida = (id, nombre, precio) => prod({
+      id, nombre, categoria: 'Bebidas', precio,
+      receta: [{ ing: `i_${id}`, cant: 1 }],
+    });
+    const comboAlitas = (id, piezas, precio, acompanamientoCantidad) => prod({
+      id, nombre: `Alitas x${piezas}`, categoria: 'Combos de alitas', precio, piezas, maxSabores: 2,
+      acompanamientoRequerido: true, acompanamientoCantidad,
+      recetasAcompanamiento: {
+        Papas: { ing: 'i_papa', cant: 200 },
+        Yuquitas: { ing: 'i_yuca', cant: 200 },
+      },
+      receta: [{ ing: 'i_alita', cant: piezas * 50 }],
+    });
     return {
-      config: { nombre: "Llama's Wings", nit: '', direccion: '', telefono: '', mesas: 8, impuesto: 8, impuestoIncluido: false, propina: 10 },
+      menuVersion: VERSION_MENU_OFICIAL,
+      config: { nombre: "Llama's Wings", nombreLegal: '', nit: '', direccion: '', telefono: '302 271 2981', mesas: 8, impuesto: 8, impuestoIncluido: false, propina: 10 },
       ingredientes: [
         ing('i_alita', 'Alita cruda', 'g', 30000, 5000),
         ing('i_papa', 'Papa francesa', 'g', 15000, 3000),
+        ing('i_yuca', 'Yuquitas', 'g', 10000, 2000),
         ing('i_bbq', 'Salsa BBQ', 'ml', 4000, 800),
-        ing('i_miel', 'Salsa miel mostaza', 'ml', 4000, 800),
-        ing('i_bufalo', 'Salsa búfalo', 'ml', 4000, 800),
-        ing('i_maracuya', 'Salsa maracuyá picante', 'ml', 3000, 800),
-        ing('i_limon', 'Salsa limón pimienta', 'ml', 3000, 800),
-        ing('i_habanero', 'Salsa habanero', 'ml', 2000, 500),
-        ing('i_blue', 'Aderezo blue cheese', 'porción', 120, 20),
-        ing('i_ranch', 'Aderezo ranch', 'porción', 120, 20),
-        ing('i_gaseosa', 'Gaseosa', 'unidad', 96, 12),
-        ing('i_cerveza', 'Cerveza', 'unidad', 96, 12),
-        ing('i_agua', 'Agua', 'unidad', 60, 12),
+        ing('i_bbq_picante', 'Salsa BBQ Picante', 'ml', 3000, 600),
+        ing('i_ajo_parmesano', 'Salsa Ajo Parmesano', 'ml', 3000, 600),
+        ing('i_miel_mostaza', 'Salsa Miel Mostaza', 'ml', 3000, 600),
+        ing('i_teriyaki', 'Salsa Teriyaki', 'ml', 3000, 600),
+        ...[
+          ['coca_cola_400', 'Coca-Cola 400ml', 96, 12],
+          ['coca_cola_15l', 'Coca-Cola 1.5L', 48, 6],
+          ['kola_roman_400', 'Kola Román 400ml', 48, 6],
+          ['manzana', 'Manzana', 48, 6],
+          ['agua_manzana_600', 'Agua Manzana 600ml', 48, 6],
+          ['agua', 'Agua', 48, 6],
+          ['heineken', 'Heineken', 48, 6],
+          ['budweiser', 'Budweiser', 48, 6],
+          ['club_colombia', 'Club Colombia', 48, 6],
+          ['coronita', 'Coronita', 48, 6],
+        ].map(([id, nombre, stock, minimo]) => ing(`i_${id}`, nombre, 'unidad', stock, minimo)),
       ],
       sabores: [
-        sab('s_bbq', 'BBQ', 1, 'i_bbq'),
-        sab('s_miel', 'Miel mostaza', 0, 'i_miel'),
-        sab('s_bufalo', 'Búfalo', 3, 'i_bufalo'),
-        sab('s_maracuya', 'Maracuyá picante', 3, 'i_maracuya'),
-        sab('s_limon', 'Limón pimienta', 1, 'i_limon'),
-        sab('s_habanero', 'Habanero fuego', 5, 'i_habanero'),
+        sab('s_bbq_oficial', 'BBQ', 1, 'i_bbq'),
+        sab('s_bbq_picante', 'BBQ Picante', 3, 'i_bbq_picante'),
+        sab('s_ajo_parmesano', 'Ajo Parmesano', 0, 'i_ajo_parmesano'),
+        sab('s_miel_mostaza', 'Miel Mostaza', 0, 'i_miel_mostaza'),
+        sab('s_teriyaki', 'Teriyaki', 0, 'i_teriyaki'),
       ],
       menu: [
-        prod({ id: 'p_a6', nombre: 'Alitas x6', categoria: 'Alitas', precio: 22000, piezas: 6, maxSabores: 2, estacion: 'freidora', receta: [{ ing: 'i_alita', cant: 300 }] }),
-        prod({ id: 'p_a10', nombre: 'Alitas x10', categoria: 'Alitas', precio: 34000, piezas: 10, maxSabores: 2, estacion: 'freidora', receta: [{ ing: 'i_alita', cant: 500 }] }),
-        prod({ id: 'p_a16', nombre: 'Alitas x16', categoria: 'Alitas', precio: 50000, piezas: 16, maxSabores: 3, estacion: 'freidora', receta: [{ ing: 'i_alita', cant: 800 }] }),
-        prod({ id: 'p_papas', nombre: 'Papas francesas', categoria: 'Acompañantes', precio: 10000, estacion: 'freidora', receta: [{ ing: 'i_papa', cant: 200 }] }),
-        prod({ id: 'p_blue', nombre: 'Dip blue cheese', categoria: 'Acompañantes', precio: 2500, receta: [{ ing: 'i_blue', cant: 1 }] }),
-        prod({ id: 'p_ranch', nombre: 'Dip ranch', categoria: 'Acompañantes', precio: 2500, receta: [{ ing: 'i_ranch', cant: 1 }] }),
-        prod({ id: 'p_gaseosa', nombre: 'Gaseosa', categoria: 'Bebidas', precio: 5000, estacion: 'barra', receta: [{ ing: 'i_gaseosa', cant: 1 }] }),
-        prod({ id: 'p_limonada', nombre: 'Limonada de coco', categoria: 'Bebidas', precio: 8000, estacion: 'barra' }),
-        prod({ id: 'p_cerveza', nombre: 'Cerveza', categoria: 'Bebidas', precio: 7000, estacion: 'barra', receta: [{ ing: 'i_cerveza', cant: 1 }] }),
-        prod({ id: 'p_agua', nombre: 'Agua', categoria: 'Bebidas', precio: 4000, estacion: 'barra', receta: [{ ing: 'i_agua', cant: 1 }] }),
+        comboAlitas('combo_x6', 6, 18000, 1),
+        comboAlitas('combo_x8', 8, 23000, 1),
+        comboAlitas('combo_x12', 12, 34000, 1),
+        comboAlitas('combo_x24', 24, 64000, 2),
+        comboAlitas('combo_x36', 36, 84000, 2),
+        prod({ id: 'extra_papas', nombre: 'Porción de Papas', categoria: 'Adicionales', precio: 5000, receta: [{ ing: 'i_papa', cant: 200 }] }),
+        prod({ id: 'extra_yuquitas', nombre: 'Porción de Yuquitas', categoria: 'Adicionales', precio: 5000, receta: [{ ing: 'i_yuca', cant: 200 }] }),
+        bebida('coca_cola_400', 'Coca-Cola 400ml', 4000),
+        bebida('coca_cola_15l', 'Coca-Cola 1.5L', 8000),
+        bebida('kola_roman_400', 'Kola Román 400ml', 4000),
+        bebida('manzana', 'Manzana', 4000),
+        bebida('agua_manzana_600', 'Agua Manzana 600ml', 4000),
+        bebida('agua', 'Agua', 4000),
+        bebida('heineken', 'Heineken', 5500),
+        bebida('budweiser', 'Budweiser', 5500),
+        bebida('club_colombia', 'Club Colombia', 6000),
+        bebida('coronita', 'Coronita', 6500),
       ],
       pedidos: [], facturas: [], cierres: [],
       contadores: { pedido: 1, factura: 1 },
@@ -80,7 +114,24 @@ const Store = (() => {
         if (config.nombre === 'Mis Alitas' || config.nombre === 'Llamas Wings') {
           config.nombre = d.config.nombre;
         }
-        db = { ...d, ...p, config, contadores: { ...d.contadores, ...p.contadores } };
+        const ingredientes = [...(p.ingredientes || [])];
+        for (const inicial of d.ingredientes) {
+          if (!ingredientes.some((item) => item.id === inicial.id)) ingredientes.push(inicial);
+        }
+        let menu = p.menu || d.menu;
+        let sabores = p.sabores || d.sabores;
+        if ((p.menuVersion || 0) < VERSION_MENU_OFICIAL) {
+          menu = menu.filter((item) => !IDS_MENU_INICIAL_ANTERIOR.has(item.id));
+          menu = [...menu, ...d.menu.filter((item) => !menu.some((existente) => existente.id === item.id))];
+          sabores = sabores.filter((item) => !IDS_SABORES_INICIALES_ANTERIORES.has(item.id));
+          sabores = [...sabores, ...d.sabores.filter((item) => !sabores.some((existente) => existente.id === item.id))];
+        }
+        db = {
+          ...d, ...p, config: { ...config, nombreLegal: config.nombreLegal || '', telefono: config.telefono || d.config.telefono },
+          ingredientes, menu, sabores, menuVersion: VERSION_MENU_OFICIAL,
+          contadores: { ...d.contadores, ...p.contadores },
+        };
+        guardar();
         return;
       }
     } catch (e) { /* datos corruptos o sin acceso: se arranca limpio */ }
@@ -101,6 +152,46 @@ const Store = (() => {
   const sabor = buscar('sabores');
   const ingrediente = buscar('ingredientes');
   const factura = buscar('facturas');
+
+  function validarItems(items) {
+    if (!Array.isArray(items) || !items.length) return 'Agrega al menos un producto al pedido.';
+    for (const item of items) {
+      if (!item || typeof item !== 'object') return 'El pedido contiene un producto inválido.';
+      const p = producto(item.pid);
+      if (!p || !p.activo) return 'Hay un producto que ya no existe o está inactivo en el menú.';
+      if (!p.piezas) continue;
+      const sabores = Array.isArray(item.sabores) ? item.sabores : [];
+      if (sabores.length < 1 || sabores.length > 2) return `${p.nombre}: selecciona uno o dos sabores.`;
+      if (sabores.some((saborItem) => !sabor(saborItem.fid)?.activo)) return `${p.nombre}: hay un sabor no disponible.`;
+      if (sabores.length === 1 && sabores[0].piezas !== p.piezas) return `${p.nombre}: un solo sabor debe cubrir las ${p.piezas} piezas.`;
+      if (sabores.length === 2 && (
+        p.piezas % 2 !== 0
+        || sabores[0].fid === sabores[1].fid
+        || sabores.some((saborItem) => saborItem.piezas !== p.piezas / 2)
+      )) return `${p.nombre}: divide las piezas exactamente 50/50 entre dos sabores distintos.`;
+      if (sabores.reduce((total, saborItem) => total + saborItem.piezas, 0) !== p.piezas) return `${p.nombre}: la selección debe cubrir exactamente ${p.piezas} alitas.`;
+      if (p.acompanamientoRequerido && !['Papas', 'Yuquitas'].includes(item.acompanamiento)) return `${p.nombre}: selecciona Papas o Yuquitas como acompañamiento.`;
+      if (p.acompanamientoRequerido && item.acompanamientoCantidad !== p.acompanamientoCantidad) return `${p.nombre}: la cantidad de acompañamientos no coincide con el combo.`;
+    }
+    return '';
+  }
+
+  function normalizarItems(items) {
+    return items.map((item) => {
+      const p = producto(item.pid);
+      const sabores = (Array.isArray(item.sabores) ? item.sabores : []).map((seleccion) => {
+        const actual = sabor(seleccion.fid);
+        return { fid: actual.id, nombre: actual.nombre, piezas: seleccion.piezas, picante: actual.picante };
+      });
+      return {
+        ...item,
+        sabores,
+        ...(p.acompanamientoRequerido
+          ? { acompanamiento: item.acompanamiento, acompanamientoCantidad: p.acompanamientoCantidad }
+          : {}),
+      };
+    });
+  }
 
   function estadoMesas() {
     const prioridad = ['listo', 'preparacion', 'pendiente', 'entregado'];
@@ -131,11 +222,18 @@ const Store = (() => {
     for (const it of items) {
       const p = producto(it.pid);
       if (p) p.receta.forEach((r) => add(r.ing, r.cant * it.cant));
+      if (p?.acompanamientoRequerido && it.acompanamiento) {
+        const recetaAcompanamiento = p.recetasAcompanamiento?.[it.acompanamiento];
+        if (recetaAcompanamiento) {
+          add(recetaAcompanamiento.ing, recetaAcompanamiento.cant * (p.acompanamientoCantidad || 1) * it.cant);
+        }
+      }
       (it.sabores || []).forEach((s) => {
         const f = sabor(s.fid);
         if (f && f.ing) add(f.ing, f.porPieza * s.piezas * it.cant);
       });
     }
+
     return m;
   }
   function faltantes(nuevo, viejo = {}) {
@@ -157,14 +255,18 @@ const Store = (() => {
 
   /* ---------- Pedidos ---------- */
   function crearPedido(d) {
-    const consumo = consumoDe(d.items);
+    const errorValidacion = validarItems(d.items);
+    if (errorValidacion) return { ok: false, error: errorValidacion };
+    const items = normalizarItems(d.items);
+    const consumo = consumoDe(items);
     const f = faltantes(consumo);
     if (f.length) return { ok: false, faltantes: f };
     mover(consumo, -1);
     const t = ahora();
     const p = {
       id: uid(), numero: db.contadores.pedido++, mesa: d.mesa, cliente: d.cliente || '', telefono: d.telefono || '',
-      direccion: d.direccion || '', nota: d.nota || '', items: d.items, consumo, estado: 'pendiente',
+      direccion: d.direccion || '', nota: d.nota || '', items, consumo, estado: 'pendiente',
+      creadoPor: d.creadoPor || null, tipo: d.tipo || 'mesa',
       creado: t, actualizado: t, historial: [{ estado: 'pendiente', fecha: t }],
     };
     db.pedidos.push(p);
@@ -175,13 +277,20 @@ const Store = (() => {
   function actualizarPedido(id, d) {
     const p = pedido(id);
     if (!p || !ACTIVOS.includes(p.estado)) return { ok: false, error: 'Este pedido ya no se puede editar.' };
-    const consumo = consumoDe(d.items);
+    const errorValidacion = validarItems(d.items);
+    if (errorValidacion) return { ok: false, error: errorValidacion };
+    const items = normalizarItems(d.items);
+    const consumo = consumoDe(items);
     const f = faltantes(consumo, p.consumo);
     if (f.length) return { ok: false, faltantes: f };
     mover(p.consumo, 1);
     mover(consumo, -1);
-    Object.assign(p, { mesa: d.mesa, cliente: d.cliente || '', telefono: d.telefono || '', direccion: d.direccion || '', nota: d.nota || '', items: d.items, consumo, actualizado: ahora() });
-    // Si ya estaba en cocina, vuelve a "pendiente" para que cocina vea los cambios.
+    Object.assign(p, {
+      mesa: d.mesa, cliente: d.cliente || '', telefono: d.telefono || '', direccion: d.direccion || '',
+      nota: d.nota || '', items, consumo, actualizado: ahora(),
+      modificadoPor: d.modificadoPor || p.modificadoPor || null,
+    });
+    // A modified order returns to its initial status before it advances again.
     if (p.estado === 'preparacion' || p.estado === 'listo') {
       p.estado = 'pendiente';
       p.historial.push({ estado: 'pendiente', fecha: p.actualizado });
@@ -200,12 +309,13 @@ const Store = (() => {
     return true;
   }
 
-  function cancelarPedido(id) {
+  function cancelarPedido(id, autorizacion) {
     const p = pedido(id);
-    if (!p || !ACTIVOS.includes(p.estado)) return false;
+    if (!p || !ACTIVOS.includes(p.estado) || !PosAuth.verifyAdminPin(autorizacion?.pin) || autorizacion?.role !== 'ADMIN' || !autorizacion?.name) return false;
     mover(p.consumo, 1); // devuelve el inventario
     p.estado = 'cancelado';
     p.actualizado = ahora();
+    p.anulacion = { fecha: p.actualizado, autorizadoPor: autorizacion.name, ejecutadoPor: autorizacion.usuario || autorizacion.name };
     p.historial.push({ estado: 'cancelado', fecha: p.actualizado });
     guardar();
     return true;
@@ -215,10 +325,19 @@ const Store = (() => {
   function facturar(id, o) {
     const p = pedido(id);
     if (!p || p.estado !== 'entregado') return null;
+    if (!o.nombreLegal || !o.nitEmisor || !o.direccionEmisor || !o.telefonoEmisor
+      || !o.nit || !o.cliente || !o.facturadoPor?.nombre || !o.terminalId) return null;
+    if ((p.tipo === 'domicilio' || p.mesa === 'Domicilio') && (!p.telefono || !p.direccion)) return null;
     const t = totales(p.items, o.conPropina);
+    const numero = Math.max(db.contadores.factura, ...db.facturas.map((facturaExistente) => facturaExistente.numero + 1), 1);
+    db.contadores.factura = numero + 1;
     const f = {
-      id: uid(), numero: db.contadores.factura++, pedidoId: p.id, pedidoNumero: p.numero, mesa: p.mesa,
-      cliente: o.cliente || p.cliente || '', nit: o.nit || '', items: p.items.map((i) => ({ ...i })),
+      id: uid(), numero, pedidoId: p.id, pedidoNumero: p.numero, mesa: p.mesa,
+      tipo: p.tipo || 'mesa', pedidoCreado: p.creado, nota: p.nota || '',
+      telefono: p.telefono || '', direccion: p.direccion || '', creadoPor: p.creadoPor || null,
+      cliente: o.cliente, nit: o.nit, items: p.items.map((i) => ({ ...i })),
+      nombreLegal: o.nombreLegal, nitEmisor: o.nitEmisor, direccionEmisor: o.direccionEmisor,
+      telefonoEmisor: o.telefonoEmisor, terminalId: o.terminalId, facturadoPor: o.facturadoPor,
       ...t, conPropina: !!o.conPropina, metodo: o.metodo, recibido: o.metodo === 'efectivo' ? o.recibido : null,
       personas: o.personas || 1, fecha: ahora(), cierreId: null,
     };
@@ -259,8 +378,6 @@ const Store = (() => {
     const conteo = {};
     hoy.forEach((f) => f.items.forEach((i) => { conteo[i.nombre] = (conteo[i.nombre] || 0) + i.cant; }));
     return {
-      enCocina: db.pedidos.filter((p) => p.estado === 'pendiente' || p.estado === 'preparacion').length,
-      listos: db.pedidos.filter((p) => p.estado === 'listo').length,
       porFacturar: db.pedidos.filter((p) => p.estado === 'entregado').length,
       facturasHoy: hoy.length,
       ventasHoy: hoy.reduce((s, f) => s + f.total, 0),
@@ -301,7 +418,26 @@ const Store = (() => {
     const d = JSON.parse(texto);
     const ok = d && d.config && ['menu', 'sabores', 'ingredientes', 'pedidos', 'facturas'].every((k) => Array.isArray(d[k])) && d.contadores;
     if (!ok) throw new Error('El archivo no parece un respaldo válido.');
-    db = { ...datosIniciales(), ...d, cierres: d.cierres || [] };
+    const inicial = datosIniciales();
+    const ingredientes = [...d.ingredientes];
+    for (const item of inicial.ingredientes) {
+      if (!ingredientes.some((existente) => existente.id === item.id)) ingredientes.push(item);
+    }
+    let menu = d.menu;
+    let sabores = d.sabores;
+    if ((d.menuVersion || 0) < VERSION_MENU_OFICIAL) {
+      menu = menu.filter((item) => !IDS_MENU_INICIAL_ANTERIOR.has(item.id));
+      menu = [...menu, ...inicial.menu.filter((item) => !menu.some((existente) => existente.id === item.id))];
+      sabores = sabores.filter((item) => !IDS_SABORES_INICIALES_ANTERIORES.has(item.id));
+      sabores = [...sabores, ...inicial.sabores.filter((item) => !sabores.some((existente) => existente.id === item.id))];
+    }
+    db = {
+      ...inicial, ...d,
+      config: { ...inicial.config, ...d.config, nombreLegal: d.config.nombreLegal || '', telefono: d.config.telefono || inicial.config.telefono },
+      ingredientes, menu, sabores, menuVersion: VERSION_MENU_OFICIAL,
+      contadores: { ...inicial.contadores, ...d.contadores },
+      cierres: d.cierres || [],
+    };
     guardar();
   }
   function reiniciar() { db = datosIniciales(); guardar(); }

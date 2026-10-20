@@ -1,0 +1,14 @@
+# Node.js
+node_modules/
+**/node_modules/
+backend/dist/
+
+# Local environment and build files
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db

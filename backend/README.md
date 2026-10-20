@@ -1,7 +1,6 @@
 # Llamas Wings API
 
-NestJS API for PostgreSQL orders, recipe-based inventory, portion flavor/dip selections,
-and real-time kitchen updates with Socket.IO.
+NestJS API for PostgreSQL orders, recipe-based inventory, and portion flavor/dip selections.
 
 ## Setup
 
@@ -25,9 +24,8 @@ seed hashes passwords with bcrypt and is safe to run again.
 ## HTTP endpoints
 
 - `POST /orders`: creates an order, validates per-portion wing flavors and required dips,
-  deducts product, sauce, and dip recipe ingredients in one serializable transaction, and
-  emits the kitchen event only after the transaction commits.
-- `PATCH /orders/:id/status`: allows `PENDING -> IN_PREPARATION -> READY` and notifies the kitchen.
+  and deducts product, sauce, and dip recipe ingredients in one serializable transaction.
+- `PATCH /orders/:id/status`: allows `PENDING -> IN_PREPARATION -> READY`.
 - `POST /orders/:orderId/splits` with `{"partsCount": 4}`: replaces unpaid equal splits
   for a delivered order and distributes any rounding cents exactly.
 - `POST /orders/:orderId/splits/:splitId/payment` with `{"method":"CASH"}`: records
@@ -67,11 +65,3 @@ per wing piece.
 
 The schema also includes `CashRegister` and `Payment` models using decimal monetary amounts.
 The register/cashier endpoints are not implemented yet.
-
-## Socket.IO KDS
-
-Kitchen clients connect to the `/kitchen` namespace (for example, `io("http://localhost:3000/kitchen")`).
-Connected clients join the `kitchen` room automatically; `join-kitchen` is also available.
-
-- `new-kitchen-order`: confirmed order with table, items, portion flavors/dips, notes, and timestamp.
-- `order-status-updated`: order state after a successful status update.
