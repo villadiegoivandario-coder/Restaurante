@@ -1,0 +1,13 @@
+{
+  "name": "Llama's Wings POS",
+  "short_name": "Llama's Wings",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d0d0d",
+  "theme_color": "#e52521",
+  "icons": [{
+    "src": "logo.avif",
+    "sizes": "192x192 512x512",
+    "type": "image/avif"
+  }]
+}

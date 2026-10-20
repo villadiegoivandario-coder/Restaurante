@@ -1,0 +1,127 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #ffffff;
+  background: #0d0d0d;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --red: #e52521;
+  --orange: #f97316;
+}
+
+* { box-sizing: border-box; }
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  background: #0d0d0d;
+}
+a { color: inherit; text-decoration: none; }
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 12px max(24px, calc((100vw - 1200px) / 2));
+  border-bottom: 1px solid #222;
+  background: #121212;
+}
+.brand { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 900; letter-spacing: .035em; }
+.brand-title { color: #fff; }
+.brand-title strong { color: #e52521; }
+.brand-logo {
+  display: block; width: 58px; height: 58px; flex: 0 0 58px; border: 2px solid #e52521;
+  border-radius: 50%; object-fit: cover; object-position: center;
+  box-shadow: 0 0 12px rgb(229 37 33 / 75%), 0 0 28px rgb(229 37 33 / 48%), 0 0 48px rgb(229 37 33 / 24%);
+}
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: #e52521;
+  color: #fff;
+  font-weight: 750;
+  transition: filter .2s, transform .2s;
+}
+.button:hover { background: #d32f2f; transform: translateY(-1px); }
+.button-small { padding: 11px 18px; font-size: 13px; }
+.button-large { width: 100%; padding: 15px 20px; font-size: 14px; }
+.button-large svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hero {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 48px 24px;
+}
+.hero-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: center;
+  gap: clamp(36px, 7vw, 88px);
+  width: min(100%, 960px);
+  padding: clamp(30px, 6vw, 56px);
+  border: 1px solid #262626;
+  border-radius: 24px;
+  background: #141414;
+  box-shadow: 0 0 35px rgb(229 37 33 / 9%);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.hero-card::before, .hero-card::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(229 37 33 / 11%), transparent 70%);
+  pointer-events: none;
+}
+.hero-card::before { top: -100px; left: -80px; }
+.hero-card::after { right: -90px; bottom: -110px; }
+.intro { display: grid; gap: 16px; position: relative; z-index: 1; }
+.eyebrow { margin: 0; color: #e52521; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+h1 { margin: 0; font-size: clamp(36px, 5vw, 54px); line-height: 1.08; letter-spacing: -.04em; }
+.intro > p:last-child { max-width: 490px; margin: 0; color: #a3a3a3; font-size: 15px; line-height: 1.8; }
+.login-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 24px;
+  border: 1px solid #333;
+  border-radius: 18px;
+  background: #1a1a1a;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+.logo-frame { position: relative; display: grid; place-items: center; width: 128px; height: 128px; flex: 0 0 128px; margin-inline: auto; border-radius: 50%; }
+.logo-frame::before { content: ""; position: absolute; inset: -10px; border-radius: 50%; background: #e52521; filter: blur(24px); opacity: .5; }
+.welcome-logo {
+  position: relative; display: block; width: 100%; height: 100%; border: 3px solid #e52521;
+  border-radius: 50%; object-fit: cover; object-position: center;
+  box-shadow: 0 0 14px rgb(229 37 33 / 85%), 0 0 32px rgb(229 37 33 / 58%), 0 0 56px rgb(229 37 33 / 30%);
+}
+h2 { margin: 0; font-size: 20px; }
+.login-card .button { min-height: 56px; margin-top: 2px; }
+footer { padding: 16px 24px; border-top: 1px solid #1f1f1f; color: #737373; text-align: center; font-size: 11px; }
+
+@media (max-width: 760px) {
+  .navbar { min-height: 64px; padding: 10px 16px; }
+  .brand { gap: 9px; font-size: 18px; }
+  .brand-logo { width: 48px; height: 48px; flex-basis: 48px; }
+  .hero { padding: 32px 16px; }
+  .hero-card { grid-template-columns: 1fr; gap: 28px; padding: 28px 22px; }
+  .intro { gap: 14px; }
+  h1 { font-size: clamp(36px, 10vw, 48px); }
+  .login-card { padding: 26px 20px; }
+}
