@@ -181,7 +181,7 @@ function abrirFacturar(id) {
       ${filasItems(p.items)}
       <div class="row">
         <div class="field"><label for="fa-cliente">Nombre del cliente</label><input id="fa-cliente" name="cliente" class="input" value="${esc(p.cliente)}" maxlength="60" autocomplete="name" required></div>
-        <div class="field"><label for="fa-nit">Cédula / NIT del cliente</label><input id="fa-nit" name="nit" class="input" maxlength="20" inputmode="numeric" autocomplete="off" required></div>
+        <div class="field"><label for="fa-nit">Cédula / NIT del cliente</label><input id="fa-nit" name="nit" class="input" maxlength="20" autocomplete="off" required></div>
       </div>
       ${domicilio ? `<div class="row"><div class="field"><label>Teléfono de entrega</label><input class="input" value="${esc(p.telefono)}" readonly></div>
         <div class="field"><label>Dirección de entrega</label><input class="input" value="${esc(p.direccion)}" readonly></div></div>` : ''}
