@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Llama\'s Wings POS</string>
+    <string name="title_activity_main">Llama\'s Wings POS</string>
+    <string name="package_name">com.llamaswings.pos</string>
+    <string name="custom_url_scheme">com.llamaswings.pos</string>
+</resources>

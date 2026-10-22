@@ -1,0 +1,22 @@
+{
+  "name": "llamas-wings-pos",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "cap:sync": "npm run build && npx cap sync",
+    "dev": "vite --host 0.0.0.0 --port 4173 --strictPort",
+    "cap:sync:dev": "node scripts/sync-dev.mjs",
+    "cap:open:android": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/core": "^7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.4"
+  }
+}

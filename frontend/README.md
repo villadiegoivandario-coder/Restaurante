@@ -49,6 +49,59 @@ El backend NestJS/Prisma se encuentra en `../backend`. Incluye productos, sabore
 inventario, recetas y pedidos. Consulta `../backend/README.md`
 para configurar PostgreSQL, migraciones y endpoints.
 
+## Aplicación Android con Capacitor
+
+El frontend actual es una aplicación estática JavaScript, no React/TypeScript. Su
+build mantiene `index.html`, `pos.html` y las carpetas `assets/`, `css/` y `js/`
+en las mismas rutas relativas; minifica CSS y JavaScript sin cambiar los nombres
+globales usados entre scripts.
+
+### Vista previa mientras editas
+
+Desde esta carpeta, instala dependencias e inicia el servidor:
+
+```sh
+npm install
+npm run dev
+```
+
+Abre `http://localhost:4173` en el navegador del PC. Al guardar archivos HTML,
+CSS o JavaScript, Vite recarga la página. En un workspace remoto de VS Code,
+abre **Ports**, reenvía el puerto `4173` como privado y abre el enlace que VS
+Code proporciona; así puedes verla en el PC sin publicar el servidor a Internet.
+
+### Emulador Android con recarga
+
+Con el servidor de desarrollo todavía ejecutándose, abre otra terminal:
+
+```sh
+npm run cap:sync:dev
+npx cap open android
+```
+
+Por defecto, la sincronización de desarrollo usa `http://10.0.2.2:4173`, la
+dirección que el emulador Android usa para acceder al servidor del mismo PC.
+Ejecuta la app desde Android Studio; los cambios guardados se reflejarán en el
+emulador. Si Android Studio o el emulador están en el PC y el servidor en un
+workspace remoto, pasa la URL reenviada por VS Code:
+
+```sh
+npm run cap:sync:dev -- https://<url-privada-del-puerto>
+```
+
+La configuración de recarga es solo para desarrollo. Para generar una APK con
+los archivos incluidos y sin depender del servidor, usa la configuración normal:
+
+```sh
+npm run cap:sync
+npx cap open android
+```
+
+`npm run build` genera la versión web optimizada en `dist/`. `npm run cap:sync`
+la vuelve a generar y ejecuta `cap sync` con la configuración normal.
+Compila, instala y firma el APK/AAB desde Android Studio. La compilación nativa
+requiere Android Studio y el SDK de Android.
+
 ## Pendiente para producción real
 - Conectar la interfaz POS con la API backend; hoy la interfaz continúa usando localStorage.
 - Configurar PostgreSQL, credenciales, usuarios y permisos antes de desplegar el backend.
