@@ -259,7 +259,7 @@ function pintarMenuPOS() {
     return `<button class="producto ${cant ? 'en-carrito' : ''}" data-accion="agregar" data-pid="${esc(p.id)}" ${p.activo ? '' : 'disabled'}>
       ${cant ? `<span class="cantidad">${cant}</span>` : ''}
       <span class="nombre">${esc(p.nombre)}</span>
-      ${p.maxSabores ? `<span class="hint">${p.piezas} piezas · 1 sabor o 2 al 50/50${p.acompanamientoRequerido ? ` · ${p.acompanamientoCantidad} ${p.acompanamientoCantidad === 1 ? 'acompañamiento' : 'acompañamientos'}` : ''}</span>` : ''}
+      ${p.maxSabores ? `<span class="hint">${p.piezas} piezas · hasta ${Store.maxSaboresCombo(p)} sabores${p.acompanamientoRequerido ? ` · ${p.acompanamientoCantidad} ${p.acompanamientoCantidad === 1 ? 'acompañamiento' : 'acompañamientos'}` : ''}</span>` : ''}
       <span class="precio">${dinero(p.precio)}${p.activo ? '' : ' · Agotado'}</span></button>`;
   }).join('') : `<div style="grid-column:1/-1">${vacio('buscar', 'No hay productos que coincidan.')}</div>`;
 }

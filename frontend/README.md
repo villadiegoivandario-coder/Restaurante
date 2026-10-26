@@ -12,7 +12,7 @@ Funciona sin instalar nada: abre `index.html` en el navegador.
 - **Caja**: cobro con efectivo/tarjeta/transferencia, propina sugerida, división de cuenta, comprobante imprimible, historial y cierre de caja con arqueo.
 - **Menú e inventario**: productos, sabores y stock. Cada venta descuenta ingredientes según la receta.
 - **Carta oficial**: combos X6/X8/X12/X24/X36, los cinco sabores definidos, adicionales y bebidas con sus precios configurados.
-- **Selección de combos**: cada combo exige Papas o Yuquitas; permite un sabor para todas las piezas o dos sabores distintos en división exacta 50/50. El inventario descuenta alas, salsas y acompañamiento.
+- **Selección de combos**: cada combo exige Papas o Yuquitas. X6/X8 permiten hasta dos sabores; X12/X24, hasta tres; X36, hasta cuatro. Las piezas se reparten equitativamente entre los sabores elegidos (dos sabores, 50/50); cada pedido valida el total y descuenta alas, salsas y acompañamiento del inventario.
 - **Comprobantes**: exige nombre e identificación del cliente y los datos legales del establecimiento configurados por el administrador. Incluye logo, consecutivo, fecha, terminal, usuarios, entrega a domicilio y detalle del pedido. El documento generado es comprobante interno y no sustituye la factura electrónica DIAN.
 - **Ajustes**: datos del negocio, mesas, impuesto al consumo, propina, respaldo/restauración.
 - **Acceso por PIN**: PIN de prueba `1001` (Mesero 1), `1002` (Mesero 2), `2001` (Cajero) y `9999` (Administrador). El perfil se conserva durante la sesión de la pestaña; abrir `pos.html` sin sesión vuelve a la portada.

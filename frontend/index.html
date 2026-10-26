@@ -14,27 +14,31 @@
 <body class="landing">
   <header class="landing-header">
     <a class="landing-brand" href="index.html" aria-label="Llama's Wings">
-      <span class="w-12 h-12 shrink-0 aspect-square rounded-full overflow-hidden flex items-center justify-center bg-black header-logo">
-        <img src="assets/logo.avif" alt="Llama's Wings" class="w-full h-full object-cover object-center block">
-      </span>
-      <span>Llama's <strong>Wings</strong></span>
+      <img class="header-logo" src="assets/logo.avif" alt="Llama's Wings">
+      <span class="glitch">Llama's Wings</span>
     </a>
-    <span class="tablet-status">
-      <span class="status-indicator" aria-hidden="true"></span>
-      <span id="tablet-id-badge">Terminal: POS-01</span>
-    </span>
+    <div class="landing-header-meta">
+      <div class="tablet-status">
+        <span class="status-indicator" aria-hidden="true"></span>
+        <span id="tablet-id-badge">TERMINAL: POS-286</span>
+      </div>
+      <div id="aws-status-badge" class="connection-status" role="status" aria-label="Estado del servidor: offline">
+        <span class="connection-ping" aria-hidden="true"></span>
+        <span class="connection-label">OFFLINE</span>
+      </div>
+    </div>
   </header>
 
   <main class="landing-main">
     <section class="simple-login-card" aria-labelledby="pos-title">
-      <div class="w-20 h-20 shrink-0 aspect-square rounded-full overflow-hidden flex items-center justify-center bg-black logo-container landing-logo-container">
-        <img src="assets/logo.avif" alt="Llama's Wings" class="w-full h-full object-cover object-center block">
+      <div class="landing-logo-container">
+        <img src="assets/logo.avif" alt="Llama's Wings">
       </div>
 
       <h1 id="pos-title">Punto de Venta</h1>
-      <p class="simple-login-hint">Ingresa tu PIN de usuario para continuar</p>
+      <p class="simple-login-hint">Ingresa tu PIN de 4 dígitos para continuar</p>
 
-      <button type="button" id="pin-entry" class="pin-entry" aria-label="Abrir teclado numérico para ingresar PIN">----</button>
+      <button type="button" id="pin-entry" class="pin-entry" aria-label="Abrir teclado numérico para ingresar PIN">••••</button>
       <p id="access-error" class="access-error" role="alert" hidden></p>
       <button type="button" id="open-pos" class="button simple-login-button">
         <span>Ingresar al POS</span>
@@ -44,12 +48,12 @@
   </main>
 
   <footer class="landing-footer">
-    <span>© 2026 Llama's Wings POS</span>
-    <span class="footer-terminal">
-      <time id="live-clock" aria-live="off">Cargando fecha...</time>
+    <span>© 2026 Llama's Wings. Todos los derechos reservados.</span>
+    <div class="footer-terminal">
+      <time id="live-clock"></time>
       <span class="footer-divider" aria-hidden="true">|</span>
-      <span id="footer-device-id">ID: POS-01</span>
-    </span>
+      <span id="footer-device-id">ID Terminal: POS-286</span>
+    </div>
   </footer>
 
   <dialog id="pin-modal" class="pin-modal" aria-labelledby="pin-title">

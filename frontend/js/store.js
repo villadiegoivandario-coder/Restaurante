@@ -39,7 +39,8 @@ const Store = (() => {
       receta: [{ ing: `i_${id}`, cant: 1 }],
     });
     const comboAlitas = (id, piezas, precio, acompanamientoCantidad) => prod({
-      id, nombre: `Alitas x${piezas}`, categoria: 'Combos de alitas', precio, piezas, maxSabores: 2,
+      id, nombre: `Alitas x${piezas}`, categoria: 'Combos de alitas', precio, piezas,
+      maxSabores: piezas >= 36 ? 4 : piezas >= 12 ? 3 : 2,
       acompanamientoRequerido: true, acompanamientoCantidad,
       recetasAcompanamiento: {
         Papas: { ing: 'i_papa', cant: 200 },
@@ -153,6 +154,19 @@ const Store = (() => {
   const ingrediente = buscar('ingredientes');
   const factura = buscar('facturas');
 
+  function maxSaboresCombo(p) {
+    const limitesOficiales = { combo_x6: 2, combo_x8: 2, combo_x12: 3, combo_x24: 3, combo_x36: 4 };
+    return limitesOficiales[p?.id] || Math.min(p?.piezas || 0, p?.maxSabores || 2);
+  }
+
+  function distribuirPiezas(piezas, cantidadSabores) {
+    if (!Number.isInteger(piezas) || !Number.isInteger(cantidadSabores)
+      || piezas < 1 || cantidadSabores < 1 || cantidadSabores > piezas) return [];
+    const base = Math.floor(piezas / cantidadSabores);
+    const sobrantes = piezas % cantidadSabores;
+    return Array.from({ length: cantidadSabores }, (_, indice) => base + (indice < sobrantes ? 1 : 0));
+  }
+
   function validarItems(items) {
     if (!Array.isArray(items) || !items.length) return 'Agrega al menos un producto al pedido.';
     for (const item of items) {
@@ -161,14 +175,14 @@ const Store = (() => {
       if (!p || !p.activo) return 'Hay un producto que ya no existe o está inactivo en el menú.';
       if (!p.piezas) continue;
       const sabores = Array.isArray(item.sabores) ? item.sabores : [];
-      if (sabores.length < 1 || sabores.length > 2) return `${p.nombre}: selecciona uno o dos sabores.`;
+      const maxSabores = maxSaboresCombo(p);
+      if (sabores.length < 1 || sabores.length > maxSabores) return `${p.nombre}: selecciona entre uno y ${maxSabores} sabores.`;
       if (sabores.some((saborItem) => !sabor(saborItem.fid)?.activo)) return `${p.nombre}: hay un sabor no disponible.`;
-      if (sabores.length === 1 && sabores[0].piezas !== p.piezas) return `${p.nombre}: un solo sabor debe cubrir las ${p.piezas} piezas.`;
-      if (sabores.length === 2 && (
-        p.piezas % 2 !== 0
-        || sabores[0].fid === sabores[1].fid
-        || sabores.some((saborItem) => saborItem.piezas !== p.piezas / 2)
-      )) return `${p.nombre}: divide las piezas exactamente 50/50 entre dos sabores distintos.`;
+      if (new Set(sabores.map((saborItem) => saborItem.fid)).size !== sabores.length) return `${p.nombre}: cada sabor debe ser distinto.`;
+      const reparto = distribuirPiezas(p.piezas, sabores.length);
+      if (sabores.some((saborItem, indice) => saborItem.piezas !== reparto[indice])) {
+        return `${p.nombre}: reparte las ${p.piezas} piezas equitativamente entre los sabores seleccionados.`;
+      }
       if (sabores.reduce((total, saborItem) => total + saborItem.piezas, 0) !== p.piezas) return `${p.nombre}: la selección debe cubrir exactamente ${p.piezas} alitas.`;
       if (p.acompanamientoRequerido && !['Papas', 'Yuquitas'].includes(item.acompanamiento)) return `${p.nombre}: selecciona Papas o Yuquitas como acompañamiento.`;
       if (p.acompanamientoRequerido && item.acompanamientoCantidad !== p.acompanamientoCantidad) return `${p.nombre}: la cantidad de acompañamientos no coincide con el combo.`;
@@ -447,7 +461,7 @@ const Store = (() => {
   return {
     get db() { return db; }, get config() { return db.config; },
     cargar, guardar, cerrarSesion, pedido, producto, sabor, ingrediente, factura, estadoMesas, totales,
-    crearPedido, actualizarPedido, cambiarEstado, cancelarPedido, facturar, resumenCaja, registrarCierre,
+    maxSaboresCombo, distribuirPiezas, crearPedido, actualizarPedido, cambiarEstado, cancelarPedido, facturar, resumenCaja, registrarCierre,
     estadisticas, upsert, quitar, eliminarIngrediente, ajustarStock, exportar, importar, reiniciar, guardarConfig,
   };
 })();

@@ -52,7 +52,7 @@ if (pinModal && pinEntry && pinKeys && pinConfirm && openPos && accessError) {
     accessError.hidden = true;
     PosAuth.clearSession();
     authenticatedSession = null;
-    pinEntry.textContent = '----';
+    pinEntry.textContent = '••••';
     clearPin();
     pinModal.showModal();
   });

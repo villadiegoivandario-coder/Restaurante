@@ -72,24 +72,23 @@ function abrirConfigAlitas(pid, lid) {
   cfgAlitas = {
     pid,
     lid: lid || null,
-    saborA: linea?.sabores?.[0]?.fid || '',
-    saborB: linea?.sabores?.[1]?.fid || '',
+    sabores: linea?.sabores?.map((s) => s.fid) || [],
     acompanamiento: linea?.acompanamiento || '',
     nota: linea ? linea.nota || '' : '',
   };
+  const maxSabores = Store.maxSaboresCombo(p);
   const sabores = Store.db.sabores.filter((s) => s.activo);
   abrirModal(`
-    ${cabeceraModal(esc(p.nombre), `${p.piezas} piezas · un sabor completo o dos sabores 50/50 · ${dinero(p.precio)}`)}
-    ${sabores.length ? `<div class="field"><label for="cfg-sabor-a">Sabor A</label>
-      <select id="cfg-sabor-a" class="input" required>
-        <option value="">Selecciona un sabor</option>
-        ${sabores.map((s) => `<option value="${esc(s.id)}" ${cfgAlitas.saborA === s.id ? 'selected' : ''}>${esc(s.nombre)} · ${NIVELES_PICANTE[s.picante]}</option>`).join('')}
-      </select></div>
-      <div class="field"><label for="cfg-sabor-b">Sabor B (opcional, mitad de las piezas)</label>
-      <select id="cfg-sabor-b" class="input">
-        <option value="">Usar solo Sabor A</option>
-        ${sabores.map((s) => `<option value="${esc(s.id)}" ${cfgAlitas.saborB === s.id ? 'selected' : ''}>${esc(s.nombre)} · ${NIVELES_PICANTE[s.picante]}</option>`).join('')}
-      </select></div>`
+    ${cabeceraModal(esc(p.nombre), `${p.piezas} piezas · hasta ${maxSabores} sabores · reparto equitativo · ${dinero(p.precio)}`)}
+    ${sabores.length ? `<div class="field"><span class="label">Elige tus sabores</span>
+      <div class="flavor-grid" role="group" aria-label="Sabores del combo">
+        ${sabores.map((s) => `<button type="button" class="flavor-option ${cfgAlitas.sabores.includes(s.id) ? 'seleccionado' : ''}" data-accion="toggle-sabor-alitas" data-fid="${esc(s.id)}" data-flavor-tone="${tonoSabor(s)}" aria-pressed="${cfgAlitas.sabores.includes(s.id)}">
+          <span class="flavor-option__led" aria-hidden="true"></span><span class="flavor-option__name">${esc(s.nombre)}</span>
+          <span class="flavor-option__level">${esc(NIVELES_PICANTE[s.picante])}</span><span class="flavor-option__pieces"></span>
+          <span class="flavor-option__check" aria-hidden="true">✓</span>
+        </button>`).join('')}
+      </div>
+      <p class="hint flavor-counter" id="cfg-contador-sabores"></p></div>`
       : vacio('alerta', 'No hay sabores disponibles. Actívalos en Menú → Sabores.')}
     ${p.acompanamientoRequerido ? `<div class="field"><label for="cfg-acompanamiento">Acompañamiento obligatorio · ${p.acompanamientoCantidad} ${p.acompanamientoCantidad === 1 ? 'porción' : 'porciones'}</label>
       <select id="cfg-acompanamiento" class="input" required>
@@ -102,18 +101,6 @@ function abrirConfigAlitas(pid, lid) {
       <button class="btn" data-accion="cerrar-modal">Cancelar</button>
       <button class="btn btn-primary" id="cfg-ok" data-accion="confirmar-alitas">${lid ? 'Guardar' : 'Confirmar e ir a pedido'}</button>
     </div>`);
-  const saborA = $('#cfg-sabor-a');
-  const saborB = $('#cfg-sabor-b');
-  if (saborA && saborB) {
-    saborA.addEventListener('change', (event) => {
-      cfgAlitas.saborA = event.target.value;
-      actualizarConfigAlitas();
-    });
-    saborB.addEventListener('change', (event) => {
-      cfgAlitas.saborB = event.target.value;
-      actualizarConfigAlitas();
-    });
-  }
   if (p.acompanamientoRequerido) {
     $('#cfg-acompanamiento').addEventListener('change', (event) => {
       cfgAlitas.acompanamiento = event.target.value;
@@ -124,36 +111,90 @@ function abrirConfigAlitas(pid, lid) {
   actualizarConfigAlitas();
 }
 
+function tonoSabor(sabor) {
+  const id = sabor.id.toLowerCase();
+  const nombre = normalizar(sabor.nombre);
+  if (id.includes('bbq') && id.includes('picante') || nombre.includes('picante')) return 'fire';
+  if (nombre.includes('ajo') || nombre.includes('parmesano')) return 'cream';
+  if (nombre.includes('miel') || nombre.includes('mostaza')) return 'amber';
+  if (nombre.includes('teriyaki')) return 'teal';
+  return 'bbq';
+}
+
 function actualizarConfigAlitas() {
   if (!cfgAlitas) return;
   const p = Store.producto(cfgAlitas.pid);
+  const maxSabores = Store.maxSaboresCombo(p);
+  const reparto = Store.distribuirPiezas(p.piezas, cfgAlitas.sabores.length);
+  const saboresDisponibles = cfgAlitas.sabores.every((fid) => Store.sabor(fid)?.activo);
+  const seleccionadoValido = saboresDisponibles
+    && cfgAlitas.sabores.length > 0
+    && cfgAlitas.sabores.length <= maxSabores
+    && new Set(cfgAlitas.sabores).size === cfgAlitas.sabores.length;
   const valido = Boolean(
-    cfgAlitas.saborA
-    && (!cfgAlitas.saborB || cfgAlitas.saborB !== cfgAlitas.saborA)
+    seleccionadoValido
     && (!p.acompanamientoRequerido || cfgAlitas.acompanamiento),
   );
+  const opciones = document.querySelectorAll('.flavor-option');
+  opciones.forEach((opcion) => {
+    const index = cfgAlitas.sabores.indexOf(opcion.dataset.fid);
+    const selected = index !== -1;
+    opcion.classList.toggle('seleccionado', selected);
+    opcion.setAttribute('aria-pressed', String(selected));
+    const pieces = opcion.querySelector('.flavor-option__pieces');
+    pieces.textContent = selected ? `${reparto[index]} PIEZAS` : '';
+  });
+  const contador = $('#cfg-contador-sabores');
+  if (contador) contador.textContent = `${cfgAlitas.sabores.length}/${maxSabores} SABORES · ${p.piezas} PIEZAS`;
   const r = $('#cfg-resumen');
   r.className = `cfg-resumen ${valido ? 'completo' : ''}`;
-  if (!cfgAlitas.saborA) r.textContent = 'Selecciona un sabor para continuar.';
-  else if (cfgAlitas.saborB === cfgAlitas.saborA) r.textContent = 'Los dos sabores deben ser distintos.';
+  if (!cfgAlitas.sabores.length) r.textContent = 'Selecciona al menos un sabor para continuar.';
+  else if (!saboresDisponibles) r.textContent = 'Uno de los sabores de este pedido ya no está disponible.';
+  else if (!seleccionadoValido) r.textContent = 'Selecciona una combinación válida de sabores distintos.';
   else if (p.acompanamientoRequerido && !cfgAlitas.acompanamiento) r.textContent = 'Selecciona el acompañamiento obligatorio.';
-  else if (cfgAlitas.saborB) r.textContent = `${p.piezas / 2} alitas de cada sabor · división 50/50`;
-  else r.textContent = `${p.piezas} alitas de un solo sabor`;
+  else {
+    const nombres = cfgAlitas.sabores.map((fid, index) => {
+      const sabor = Store.sabor(fid);
+      return `${sabor.nombre}: ${reparto[index]}`;
+    });
+    r.textContent = `${nombres.join(' · ')} · ${reparto.reduce((total, piezas) => total + piezas, 0)}/${p.piezas} piezas`;
+  }
   $('#cfg-ok').disabled = !valido;
+}
+
+function toggleSaborAlitas(fid) {
+  if (!cfgAlitas || !Store.sabor(fid)?.activo) return;
+  const index = cfgAlitas.sabores.indexOf(fid);
+  if (index >= 0) cfgAlitas.sabores.splice(index, 1);
+  else {
+    const p = Store.producto(cfgAlitas.pid);
+    if (cfgAlitas.sabores.length >= Store.maxSaboresCombo(p)) {
+      toast(`Este combo permite hasta ${Store.maxSaboresCombo(p)} sabores.`, 'error');
+      return;
+    }
+    cfgAlitas.sabores.push(fid);
+  }
+  actualizarConfigAlitas();
 }
 
 function confirmarAlitas() {
   const c = cfgAlitas;
   const p = Store.producto(c.pid);
-  if (!c.saborA || (c.saborB && c.saborB === c.saborA) || (p.acompanamientoRequerido && !c.acompanamiento)) {
+  const reparto = Store.distribuirPiezas(p.piezas, c.sabores.length);
+  if (c.sabores.length < 1 || c.sabores.length > Store.maxSaboresCombo(p)
+    || c.sabores.some((fid) => !Store.sabor(fid)?.activo)
+    || new Set(c.sabores).size !== c.sabores.length
+    || reparto.length !== c.sabores.length
+    || (p.acompanamientoRequerido && !c.acompanamiento)) {
     actualizarConfigAlitas();
     return;
   }
-  const sabores = [c.saborA, c.saborB].filter(Boolean).map((fid) => {
+  const sabores = c.sabores.map((fid, index) => {
     const s = Store.sabor(fid);
-    return { fid, nombre: s.nombre, piezas: c.saborB ? p.piezas / 2 : p.piezas, picante: s.picante };
+    return { fid, nombre: s.nombre, piezas: reparto[index], picante: s.picante };
   });
-  if (sabores.length > 2 || sabores.reduce((s, x) => s + x.piezas, 0) !== p.piezas) return;
+  if (sabores.some((s) => !s?.fid || !Number.isInteger(s.piezas) || s.piezas < 1)
+    || sabores.reduce((s, x) => s + x.piezas, 0) !== p.piezas) return;
   const nota = $('#cfg-nota').value.trim();
   if (c.lid) {
     const l = borrador.lineas.find((x) => x.lid === c.lid);

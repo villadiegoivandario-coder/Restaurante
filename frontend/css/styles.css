@@ -459,3 +459,298 @@ dialog.dialog-sm { width: min(400px, calc(100vw - 24px)); }
   .audit-row { grid-template-columns: 1fr auto; }
   .audit-row time { grid-column: 1 / -1; }
 }
+
+/* ---------- Dark premium POS ---------- */
+.topbar {
+  background: linear-gradient(110deg, rgb(17 17 17 / 96%), rgb(28 20 20 / 94%), rgb(13 13 13 / 96%));
+  border-bottom-color: rgb(229 37 33 / 30%);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 34%);
+}
+.brand-logo {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  width: 64px;
+  height: 64px;
+  flex-basis: 64px;
+  border: 4px solid var(--brand);
+  border-radius: 50%;
+  background: #000;
+  box-shadow: 0 0 50px rgb(229 37 33 / 70%);
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+.brand-logo:hover { transform: scale(1.05); }
+.brand-logo::before,
+.brand-logo::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.brand-logo::before {
+  inset: 0;
+  border: 2px solid rgb(255 255 255 / 16%);
+  box-shadow: inset 0 0 14px rgb(229 37 33 / 36%);
+}
+.brand-logo::after {
+  inset: -7px;
+  border: 2px solid rgb(229 37 33 / 58%);
+  box-shadow: 0 0 32px rgb(229 37 33 / 34%);
+}
+.brand-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+}
+.card,
+.stat,
+.producto,
+.mesa-option,
+.pedido,
+.kds-card,
+.menu-fila,
+.mesa {
+  background: linear-gradient(160deg, #1c1c1c 0%, #171717 54%, #121212 100%);
+  border-color: rgb(255 255 255 / 10%);
+  box-shadow: 0 18px 40px rgb(0 0 0 / 38%), inset 0 1px rgb(255 255 255 / 4%);
+  transition: border-color .22s ease, box-shadow .22s ease, transform .18s ease, background .22s ease;
+}
+a.stat:hover,
+.producto:hover,
+.mesa-option:hover,
+.action-card:hover {
+  border-color: rgb(229 37 33 / 55%);
+  box-shadow: 0 18px 44px rgb(0 0 0 / 46%), 0 0 22px rgb(229 37 33 / 12%);
+  transform: translateY(-2px);
+}
+.btn,
+.chip,
+.tab,
+.mesa-option,
+.producto,
+.qty button,
+.cart-fab,
+.flavor-option {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn,
+.chip,
+.tab,
+.mesa-option,
+.qty button,
+.flavor-option {
+  transition: background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease, transform .16s ease;
+}
+.btn:active,
+.chip:active,
+.tab:active,
+.mesa-option:active,
+.producto:active,
+.qty button:active,
+.flavor-option:active,
+.cart-fab:active {
+  transform: scale(.97);
+}
+.btn-primary,
+.cart-fab {
+  background: linear-gradient(135deg, #fa3933 0%, #e52521 56%, #b81714 100%);
+  box-shadow: 0 8px 24px rgb(229 37 33 / 25%), inset 0 1px rgb(255 255 255 / 22%);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #ff4c45 0%, #e52521 56%, #c51d19 100%);
+  box-shadow: 0 10px 30px rgb(229 37 33 / 36%), inset 0 1px rgb(255 255 255 / 22%);
+}
+.btn-ok {
+  background: linear-gradient(135deg, #31c86d, #168746);
+  box-shadow: 0 8px 22px rgb(34 197 94 / 18%), inset 0 1px rgb(255 255 255 / 18%);
+}
+.chip,
+.pill,
+.role-badge,
+.mesa-option small {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  letter-spacing: .06em;
+}
+.chip {
+  border-color: rgb(255 255 255 / 11%);
+  background: linear-gradient(160deg, #202020, #141414);
+}
+.chip.activo {
+  border-color: var(--brand);
+  background: linear-gradient(135deg, #571b19, #261313);
+  color: #fff;
+  box-shadow: 0 0 20px rgb(229 37 33 / 22%), inset 0 0 14px rgb(229 37 33 / 10%);
+}
+.producto.en-carrito,
+.mesa-option.activo,
+.mesa-option[aria-pressed="true"] {
+  border: 2px solid var(--brand);
+  background: linear-gradient(145deg, #351615, #1a1212 72%);
+  box-shadow: 0 0 25px rgb(229 37 33 / 24%), inset 0 0 18px rgb(229 37 33 / 8%);
+}
+.card {
+  border-color: rgb(255 255 255 / 12%);
+  border-top-color: rgb(229 37 33 / 42%);
+}
+.cart {
+  background: linear-gradient(155deg, #1c1c1c 0%, #141414 58%, #101010 100%);
+  border: 1px solid rgb(255 255 255 / 13%);
+  box-shadow: 0 24px 54px rgb(0 0 0 / 56%), inset 0 1px rgb(255 255 255 / 5%);
+}
+.cart > h2 {
+  padding-bottom: 14px;
+  border-bottom: 1px dashed rgb(255 255 255 / 20%);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 15px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.cart .cart-items { gap: 0; }
+.cart .cart-item {
+  padding: 12px 0;
+  border-bottom: 1px dashed rgb(255 255 255 / 16%);
+}
+.cart .totales > div:not(.hint) {
+  padding-block: 6px;
+  border-bottom: 1px dashed rgb(255 255 255 / 15%);
+}
+.cart .totales > .total {
+  padding-block: 14px;
+  border-bottom: 0;
+  font-size: 18px;
+}
+.cart [data-accion="guardar-pedido"] {
+  min-height: 58px;
+  border-radius: 14px;
+  font-size: 15px;
+  letter-spacing: .035em;
+}
+.cart-fab {
+  border: 1px solid rgb(255 255 255 / 20%);
+  background: linear-gradient(120deg, #f63932, #bd1714);
+  box-shadow: 0 12px 32px rgb(229 37 33 / 32%);
+}
+.mesa-option {
+  border-radius: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.flavor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.flavor-option {
+  --flavor-accent: #fb923c;
+  position: relative;
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  align-items: center;
+  gap: 3px 10px;
+  min-height: 76px;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 14px;
+  background: linear-gradient(150deg, #202020, #121212);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+}
+.flavor-option::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 100% 0, color-mix(in srgb, var(--flavor-accent) 17%, transparent), transparent 56%);
+  opacity: .7;
+  pointer-events: none;
+}
+.flavor-option[data-flavor-tone="fire"] { --flavor-accent: #ff453a; }
+.flavor-option[data-flavor-tone="cream"] { --flavor-accent: #f5d79a; }
+.flavor-option[data-flavor-tone="amber"] { --flavor-accent: #f6b82d; }
+.flavor-option[data-flavor-tone="teal"] { --flavor-accent: #52d4bd; }
+.flavor-option__led {
+  grid-row: span 3;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--flavor-accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--flavor-accent) 72%, transparent);
+}
+.flavor-option__name { font-weight: 750; line-height: 1.2; }
+.flavor-option__level,
+.flavor-option__pieces {
+  color: color-mix(in srgb, var(--flavor-accent) 82%, white);
+  font: 10px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.flavor-option__pieces { min-height: 12px; }
+.flavor-option__check {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 50%;
+  color: transparent;
+  font-size: 12px;
+  transition: background .2s, border-color .2s, color .2s, box-shadow .2s;
+}
+.flavor-option.seleccionado,
+.flavor-option[aria-pressed="true"] {
+  border: 2px solid var(--brand);
+  background: linear-gradient(145deg, #421c1a, #1a1111 74%);
+  box-shadow: 0 0 25px rgb(229 37 33 / 32%), inset 0 0 18px rgb(229 37 33 / 11%);
+}
+.flavor-option.seleccionado .flavor-option__check,
+.flavor-option[aria-pressed="true"] .flavor-option__check {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 0 14px rgb(229 37 33 / 55%);
+}
+.flavor-counter {
+  margin-top: 8px;
+  color: #fca5a5;
+  font: 10px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.cfg-resumen {
+  border: 1px solid rgb(251 191 36 / 24%);
+  background: linear-gradient(145deg, #27200f, #19150e);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.cfg-resumen.completo {
+  border-color: rgb(74 222 128 / 32%);
+  background: linear-gradient(145deg, #13251a, #101a13);
+}
+.role-badge {
+  background: linear-gradient(145deg, #291718, #171213);
+  text-transform: uppercase;
+}
+.pill { border: 1px solid rgb(255 255 255 / 9%); text-transform: uppercase; }
+
+@media (max-width: 720px) {
+  .brand-logo { width: 56px; height: 56px; flex-basis: 56px; }
+  .flavor-grid { gap: 8px; }
+  .flavor-option { min-height: 74px; padding: 10px; }
+  .cart { box-shadow: 0 18px 38px rgb(0 0 0 / 45%); }
+}
+
+@media (max-width: 380px) {
+  .flavor-option { grid-template-columns: 8px minmax(0, 1fr); gap: 3px 7px; padding: 9px; }
+}

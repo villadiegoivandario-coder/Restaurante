@@ -200,6 +200,7 @@ const Acciones = {
   },
   'quitar-linea': (d) => { borrador.lineas = borrador.lineas.filter((x) => x.lid !== d.lid); pintarCarrito(); },
   'editar-linea': (d) => { const l = borrador.lineas.find((x) => x.lid === d.lid); if (l) abrirConfigAlitas(l.pid, l.lid); },
+  'toggle-sabor-alitas': (d) => toggleSaborAlitas(d.fid),
   'sabor-mas': (d) => { cfgAlitas.asign[d.fid] = (cfgAlitas.asign[d.fid] || 0) + 1; refrescarConfigAlitas(); },
   'sabor-menos': (d) => { cfgAlitas.asign[d.fid] = Math.max(0, (cfgAlitas.asign[d.fid] || 0) - 1); refrescarConfigAlitas(); },
   'confirmar-alitas': () => confirmarAlitas(),
