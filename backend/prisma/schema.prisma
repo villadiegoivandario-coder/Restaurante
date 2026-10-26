@@ -1,0 +1,279 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InventoryUnit {
+  GRAM
+  KILOGRAM
+  MILLILITER
+  LITER
+  UNIT
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  DELIVERY
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PREPARATION
+  READY
+  DELIVERED
+  PAID
+  CANCELLED
+}
+
+enum RegisterState {
+  OPEN
+  CLOSED
+}
+
+enum Role {
+  WAITER
+  CASHIER
+  KITCHEN
+  ADMIN
+}
+
+enum SplitType {
+  EQUAL_PARTS
+  BY_ITEM
+  CUSTOM_AMOUNT
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  username  String   @unique
+  password  String
+  role      Role     @default(WAITER)
+  active    Boolean  @default(true)
+  orders    Order[]  @relation("WaiterOrders")
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id       String    @id @default(uuid()) @db.Uuid
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id                    String     @id @default(uuid()) @db.Uuid
+  name                  String     @unique
+  categoryId            String?    @db.Uuid
+  price                 Decimal    @db.Decimal(12, 2)
+  piecesPerPortion      Int        @default(0)
+  allowsFlavors         Boolean    @default(true)
+  maxFlavors            Int        @default(1)
+  isDip                 Boolean    @default(false)
+  requiresDip           Boolean    @default(false)
+  active                Boolean    @default(true)
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  category              Category?  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  recipe                Recipe[]
+  orderItems            OrderItem[]
+  portionsAsDip         OrderItemPortionDip[]
+
+  @@index([name])
+  @@index([categoryId])
+}
+
+model Flavor {
+  id                  String                    @id @default(uuid()) @db.Uuid
+  name                String                    @unique
+  spiceLevel          Int                       @default(0) @db.SmallInt
+  active              Boolean                   @default(true)
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  orderPortionFlavors OrderItemPortionFlavor[]
+  recipe              FlavorRecipe[]
+}
+
+model Ingredient {
+  id           String         @id @default(uuid()) @db.Uuid
+  name         String         @unique
+  unit         InventoryUnit
+  stock        Decimal        @default(0) @db.Decimal(12, 3)
+  minimumStock Decimal        @default(0) @db.Decimal(12, 3)
+  active       Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  recipe       Recipe[]
+  flavorRecipe FlavorRecipe[]
+
+  @@index([active, name])
+}
+
+model Recipe {
+  id                 String     @id @default(uuid()) @db.Uuid
+  productId          String     @db.Uuid
+  ingredientId       String     @db.Uuid
+  quantityPerPortion Decimal    @db.Decimal(12, 3)
+  product            Product    @relation(fields: [productId], references: [id], onDelete: Restrict)
+  ingredient         Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  @@unique([productId, ingredientId])
+  @@index([ingredientId])
+}
+
+model FlavorRecipe {
+  id                 String     @id @default(uuid()) @db.Uuid
+  flavorId           String     @db.Uuid
+  ingredientId       String     @db.Uuid
+  quantityPerPiece   Decimal    @db.Decimal(12, 3)
+  flavor             Flavor     @relation(fields: [flavorId], references: [id], onDelete: Restrict)
+  ingredient         Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  @@unique([flavorId, ingredientId])
+  @@index([ingredientId])
+}
+
+model Order {
+  id           String      @id @default(uuid()) @db.Uuid
+  number       Int         @unique @default(autoincrement())
+  type         OrderType
+  status       OrderStatus @default(PENDING)
+  tableNumber  Int?
+  tableName    String?
+  waiterId     String?     @db.Uuid
+  customerName String?
+  phone        String?
+  address      String?
+  note         String?
+  total        Decimal     @default(0) @db.Decimal(12, 2)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  waiter       User?       @relation("WaiterOrders", fields: [waiterId], references: [id], onDelete: SetNull)
+  items        OrderItem[]
+  payments     Payment[]
+  splits       OrderSplit[]
+
+  @@index([status, createdAt])
+  @@index([type, createdAt])
+  @@index([waiterId, createdAt])
+}
+
+model OrderItem {
+  id          String              @id @default(uuid()) @db.Uuid
+  orderId     String              @db.Uuid
+  productId   String              @db.Uuid
+  productName String
+  quantity    Int
+  unitPrice   Decimal             @db.Decimal(12, 2)
+  note        String?
+  order       Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product             @relation(fields: [productId], references: [id], onDelete: Restrict)
+  portions    OrderItemPortion[]
+  splitItems  SplitItem[]
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderItemPortion {
+  id          String                    @id @default(uuid()) @db.Uuid
+  orderItemId String                    @db.Uuid
+  number      Int
+  orderItem   OrderItem                 @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  flavors     OrderItemPortionFlavor[]
+  dips        OrderItemPortionDip[]
+
+  @@unique([orderItemId, number])
+}
+
+model OrderItemPortionFlavor {
+  portionId  String           @db.Uuid
+  flavorId   String           @db.Uuid
+  flavorName String
+  pieces     Int
+  portion    OrderItemPortion @relation(fields: [portionId], references: [id], onDelete: Cascade)
+  flavor     Flavor           @relation(fields: [flavorId], references: [id], onDelete: Restrict)
+
+  @@id([portionId, flavorId])
+  @@index([flavorId])
+}
+
+model OrderItemPortionDip {
+  portionId   String           @db.Uuid
+  productId   String           @db.Uuid
+  productName String
+  quantity    Int              @default(1)
+  portion     OrderItemPortion @relation(fields: [portionId], references: [id], onDelete: Cascade)
+  product     Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@id([portionId, productId])
+  @@index([productId])
+}
+
+model OrderSplit {
+  id          String        @id @default(uuid()) @db.Uuid
+  orderId     String        @db.Uuid
+  splitNumber Int
+  splitType   SplitType
+  amount      Decimal       @db.Decimal(12, 2)
+  isPaid      Boolean       @default(false)
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items       SplitItem[]
+  payments    Payment[]
+
+  @@unique([orderId, splitNumber])
+  @@index([orderId, isPaid])
+}
+
+model SplitItem {
+  id           String           @id @default(uuid()) @db.Uuid
+  orderSplitId String           @db.Uuid
+  orderItemId  String           @db.Uuid
+  quantity     Int
+  orderSplit   OrderSplit       @relation(fields: [orderSplitId], references: [id], onDelete: Cascade)
+  orderItem    OrderItem        @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  @@unique([orderSplitId, orderItemId])
+  @@index([orderItemId])
+}
+
+model CashRegister {
+  id            String        @id @default(uuid()) @db.Uuid
+  openedBy      String
+  openingAmount Decimal       @db.Decimal(12, 2)
+  closingAmount Decimal?      @db.Decimal(12, 2)
+  totalSales    Decimal       @default(0) @db.Decimal(12, 2)
+  status        RegisterState @default(OPEN)
+  openedAt      DateTime      @default(now())
+  closedAt      DateTime?
+  payments      Payment[]
+
+  @@index([status, openedAt])
+}
+
+model Payment {
+  id           String        @id @default(uuid()) @db.Uuid
+  orderId      String        @db.Uuid
+  registerId   String        @db.Uuid
+  orderSplitId String?       @db.Uuid
+  amount       Decimal       @db.Decimal(12, 2)
+  method       PaymentMethod
+  receivedAt   DateTime      @default(now())
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  orderSplit   OrderSplit?   @relation(fields: [orderSplitId], references: [id], onDelete: Restrict)
+  register     CashRegister  @relation(fields: [registerId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([orderSplitId])
+  @@index([registerId, receivedAt])
+}

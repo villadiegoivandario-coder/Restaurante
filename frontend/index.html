@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e52521">
+  <meta name="description" content="Llama's Wings: punto de venta para restaurantes.">
+  <title>Llama's Wings - POS &amp; ERP</title>
+  <link rel="icon" type="image/avif" href="assets/logo.avif">
+  <link rel="apple-touch-icon" href="assets/logo.avif">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/landing.css">
+</head>
+<body class="landing">
+  <header class="landing-header">
+    <a class="landing-brand" href="index.html" aria-label="Llama's Wings">
+      <img class="header-logo" src="assets/logo.avif" alt="Llama's Wings">
+      <span class="glitch">Llama's Wings</span>
+    </a>
+    <div class="landing-header-meta">
+      <div class="tablet-status">
+        <span class="status-indicator" aria-hidden="true"></span>
+        <span id="tablet-id-badge">TERMINAL: POS-286</span>
+      </div>
+      <div id="aws-status-badge" class="connection-status" role="status" aria-label="Estado del servidor: offline">
+        <span class="connection-ping" aria-hidden="true"></span>
+        <span class="connection-label">OFFLINE</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="landing-main">
+    <section class="simple-login-card" aria-labelledby="pos-title">
+      <div class="landing-logo-container">
+        <img src="assets/logo.avif" alt="Llama's Wings">
+      </div>
+
+      <h1 id="pos-title">Punto de Venta</h1>
+      <p class="simple-login-hint">Ingresa tu PIN de 4 dígitos para continuar</p>
+
+      <button type="button" id="pin-entry" class="pin-entry" aria-label="Abrir teclado numérico para ingresar PIN">••••</button>
+      <p id="access-error" class="access-error" role="alert" hidden></p>
+      <button type="button" id="open-pos" class="button simple-login-button">
+        <span>Ingresar al POS</span>
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+      </button>
+    </section>
+  </main>
+
+  <footer class="landing-footer">
+    <span>© 2026 Llama's Wings. Todos los derechos reservados.</span>
+    <div class="footer-terminal">
+      <time id="live-clock"></time>
+      <span class="footer-divider" aria-hidden="true">|</span>
+      <span id="footer-device-id">ID Terminal: POS-286</span>
+    </div>
+  </footer>
+
+  <dialog id="pin-modal" class="pin-modal" aria-labelledby="pin-title">
+    <div class="pin-modal-content">
+      <h2 id="pin-title">Ingresa tu PIN</h2>
+      <output id="pin-dots" class="pin-dots" aria-live="polite">----</output>
+      <div id="pin-keys" class="pin-keys" aria-label="Teclado numérico"></div>
+      <div class="pin-actions">
+        <button type="button" id="pin-cancel" class="pin-secondary">Cancelar</button>
+        <button type="button" id="pin-clear" class="pin-secondary">Borrar</button>
+        <button type="button" id="pin-confirm" class="pin-confirm">Continuar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="js/terminal.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/landing.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>
