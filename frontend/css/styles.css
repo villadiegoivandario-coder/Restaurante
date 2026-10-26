@@ -1,6 +1,8 @@
 /* ============================================================
    Restaurante — estilos únicos de la aplicación
    ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+
 :root {
   color-scheme: dark;
   --bg: #0d0d0d;
@@ -25,8 +27,8 @@
   --gray-soft: #292929;
   --radius: 14px;
   --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 24px rgba(0, 0, 0, .22);
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --serif: ui-serif, Georgia, "Times New Roman", serif;
+  --font: "Plus Jakarta Sans", sans-serif;
+  --serif: "Pacifico", cursive;
   --nav-h: 64px;
 }
 
@@ -315,7 +317,7 @@ dialog.dialog-sm { width: min(400px, calc(100vw - 24px)); }
 .timeline { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
 
 /* ---------- Comprobante ---------- */
-.ticket { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; color: #111; background: #fff; padding: 20px; border-radius: 10px; border: 1px dashed #bbb; }
+.ticket { width: 72mm; max-width: 100%; margin-inline: auto; font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 12px; color: #111; background: #fff; padding: 4mm; border-radius: 2px; border: 1px dashed #bbb; }
 .ticket h2 { font-family: var(--serif); text-align: center; font-size: 20px; color: #111; }
 .ticket .c { text-align: center; color: #444; }
 .ticket-logo { display: flex; justify-content: center; margin-bottom: 8px; }
@@ -404,12 +406,13 @@ dialog.dialog-sm { width: min(400px, calc(100vw - 24px)); }
 
 /* ---------- Impresión del comprobante ---------- */
 @media print {
+  @page { size: 80mm auto; margin: 0; }
   .topbar, .nav, main, #toasts, .cart-fab, .no-print { display: none !important; }
   body { background: #fff; padding: 0; }
   dialog { position: static; width: auto; max-width: none; max-height: none; box-shadow: none; border-radius: 0; margin: 0; }
   dialog::backdrop { display: none; }
   .modal-body { padding: 0; }
-  .ticket { border: none; padding: 0; }
+  .ticket { width: 72mm; max-width: none; border: none; padding: 4mm; }
 }
 
 /* ============================================================
@@ -753,4 +756,98 @@ a.stat:hover,
 
 @media (max-width: 380px) {
   .flavor-option { grid-template-columns: 8px minmax(0, 1fr); gap: 3px 7px; padding: 9px; }
+}
+
+.topbar .brand-logo { width: 68px; height: 68px; flex-basis: 68px; }
+.brand-title {
+  position: relative;
+  color: #fff;
+  font-family: "Pacifico", cursive;
+  font-size: 26px;
+  font-weight: 400;
+  text-shadow: .05em 0 rgba(255, 0, 0, .75), -.025em -.05em rgba(0, 255, 0, .75), .025em .05em rgba(0, 0, 255, .75);
+  animation: pos-brand-glitch .3s infinite;
+}
+@keyframes pos-brand-glitch {
+  0%, 100% { text-shadow: .05em 0 rgba(255, 0, 0, .75), -.05em -.025em rgba(0, 255, 0, .75), -.025em .05em rgba(0, 0, 255, .75); }
+  50% { text-shadow: -.05em .025em rgba(255, 0, 0, .75), .05em 0 rgba(0, 255, 0, .75), -.025em -.05em rgba(0, 0, 255, .75); }
+}
+.inventory-group { margin-top: 20px; }
+.inventory-group > h2 { margin: 0 0 10px; color: var(--brand); font-size: 15px; text-transform: uppercase; }
+.inventory-name { flex: 1 1 220px; min-width: 0; }
+.stock-meter { width: min(100%, 340px); height: 8px; margin-top: 8px; overflow: hidden; border: 1px solid rgb(255 255 255 / 10%); border-radius: 999px; background: #111; }
+.stock-meter span { display: block; height: 100%; border-radius: inherit; transition: width .25s ease; }
+.stock-meter.healthy span { background: #22c55e; }
+.stock-meter.warning span { background: #facc15; }
+.stock-meter.critical span { background: #ef4444; }
+.ticket { overflow-wrap: anywhere; }
+
+@media (max-width: 720px) {
+  .topbar .brand-logo { width: 60px; height: 60px; flex-basis: 60px; }
+  .brand-title { font-size: 21px; }
+}
+
+@media (max-width: 380px) {
+  .topbar .brand-logo { width: 48px; height: 48px; flex-basis: 48px; }
+  .brand-title { font-size: 18px; }
+}
+
+.menu-ardiente-page {
+  position: relative;
+  isolation: isolate;
+  width: 100vw;
+  min-height: calc(100vh - var(--nav-h));
+  margin: -24px 0 -48px calc(50% - 50vw);
+  padding: 28px 24px 48px;
+}
+.menu-ardiente-page::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(to bottom, rgb(13 13 13 / 76%), rgb(13 13 13 / 94%)), url("../assets/background-fire.jpg") center / cover;
+  content: "";
+  pointer-events: none;
+}
+.menu-ardiente-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  align-items: start;
+  gap: 24px;
+  width: min(100%, 1440px);
+  margin-inline: auto;
+}
+.menu-ardiente-products { display: flex; min-width: 0; flex-direction: column; gap: 28px; }
+.menu-ardiente-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+.menu-ardiente-heading h1 { color: var(--brand); font-size: 36px; }
+.menu-ardiente-heading p { margin-top: 6px; color: var(--muted); font-size: 12px; }
+.menu-ardiente-section > h2 { margin: 0 0 12px; color: var(--brand); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; }
+.combo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.combo-card { display: flex; min-width: 0; flex-direction: column; justify-content: space-between; gap: 12px; padding: 16px; border: 1px solid rgb(255 255 255 / 10%); border-radius: 14px; background: linear-gradient(155deg, #1c1c1c, #101010); box-shadow: var(--shadow); }
+.combo-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.combo-count { color: var(--brand); font-family: "Pacifico", cursive; font-size: 27px; }
+.combo-price { padding: 6px 9px; border: 1px solid rgb(229 37 33 / 30%); border-radius: 8px; background: rgb(229 37 33 / 14%); font-weight: 800; white-space: nowrap; }
+.combo-card h3 { font-size: 13px; }
+.combo-card p { flex: 1; color: var(--muted); font-size: 11px; }
+.combo-card .btn { width: 100%; white-space: normal; }
+.extras-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.extra-product { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; padding: 11px 12px; border: 1px solid rgb(255 255 255 / 8%); border-radius: 10px; background: rgb(31 31 31 / 78%); text-align: left; }
+.extra-product:hover { border-color: rgb(229 37 33 / 55%); background: #252525; }
+.extra-product span { overflow-wrap: anywhere; font-size: 12px; }
+.extra-product strong { color: #f87171; font-size: 12px; white-space: nowrap; }
+.ardiente-cart { position: sticky; top: 92px; max-height: calc(100vh - 108px); overflow-y: auto; }
+.ardiente-cart > h2 { display: flex; align-items: center; gap: 8px; }
+.ardiente-cart-items { min-height: 150px; max-height: 300px; overflow-y: auto; }
+
+@media (max-width: 1020px) {
+  .menu-ardiente-layout { grid-template-columns: minmax(0, 1fr) minmax(280px, .8fr); gap: 16px; }
+  .combo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .menu-ardiente-page { padding: 20px 14px 40px; }
+  .menu-ardiente-layout { grid-template-columns: minmax(0, 1fr); }
+  .ardiente-cart { position: static; max-height: none; }
+}
+@media (max-width: 420px) {
+  .combo-grid, .extras-grid { grid-template-columns: minmax(0, 1fr); }
+  .menu-ardiente-heading h1 { font-size: 30px; }
 }

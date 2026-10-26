@@ -73,7 +73,7 @@ function abrirConfigAlitas(pid, lid) {
     pid,
     lid: lid || null,
     sabores: linea?.sabores?.map((s) => s.fid) || [],
-    acompanamiento: linea?.acompanamiento || '',
+    acompanamiento: linea?.acompanamiento || 'Papas',
     nota: linea ? linea.nota || '' : '',
   };
   const maxSabores = Store.maxSaboresCombo(p);
@@ -273,8 +273,8 @@ function abrirTicket(id) {
       <div>${esc(f.mesa)} · Pedido #${f.pedidoNumero} · ID ${esc(f.pedidoId)}</div>
       <div>Tipo: ${f.tipo === 'domicilio' ? 'Domicilio' : f.tipo === 'llevar' ? 'Para llevar' : 'Mesa'}</div>
       <div>Terminal: ${esc(f.terminalId)}</div>
-      <div>Atendido por: ${esc(f.creadoPor?.nombre || 'Sin registro')}${f.creadoPor?.rol ? ` · ${esc(PosAuth.roleLabel(f.creadoPor.rol) || f.creadoPor.rol)}` : ''}</div>
-      <div>Facturado por: ${esc(f.facturadoPor.nombre)} · ${esc(PosAuth.roleLabel(f.facturadoPor.rol) || f.facturadoPor.rol)}</div>
+      <div>ID del mesero: ${esc(f.creadoPor?.profileId || f.creadoPor?.userId || 'N/D')}</div>
+      <div>ID de caja: ${esc(f.facturadoPor.profileId || f.facturadoPor.userId)}</div>
       <div>Pedido creado: ${fechaHoraExacta(f.pedidoCreado || f.fecha)}</div>
       <div>Cliente: ${esc(f.cliente)} · Cédula / NIT: ${esc(f.nit)}</div>
       ${f.telefono ? `<div>Teléfono: ${esc(f.telefono)}</div>` : ''}

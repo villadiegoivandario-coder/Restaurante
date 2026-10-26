@@ -80,6 +80,8 @@ test('accepts evenly divided orders for every official combo', () => {
 
     assert.equal(result.ok, true, result.error);
     assert.equal(result.pedido.items[0].sabores.reduce((sum, flavor) => sum + flavor.piezas, 0), combo.pieces);
+    assert.equal(result.pedido.items[0].acompanamiento, 'Papas');
+    assert.equal(result.pedido.items[0].acompanamientoCantidad, combo.id === 'combo_x24' || combo.id === 'combo_x36' ? 2 : 1);
   }
 });
 

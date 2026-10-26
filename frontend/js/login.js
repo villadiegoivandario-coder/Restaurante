@@ -35,7 +35,7 @@ function authenticate() {
   authenticatedSession = session;
   accessError.hidden = true;
   accessError.textContent = '';
-  pinEntry.textContent = `${session.name} · ${session.roleLabel}`;
+  pinEntry.textContent = `ID: ${session.profileId}`;
   pinModal.close();
   clearPin();
   return true;
@@ -46,7 +46,7 @@ if (pinModal && pinEntry && pinKeys && pinConfirm && openPos && accessError) {
     .map((key) => `<button type="button" class="pin-key" data-pin-key="${key === '⌫' ? 'backspace' : key === '✓' ? 'submit' : key}" aria-label="${key === '⌫' ? 'Borrar último dígito' : key === '✓' ? 'Validar PIN' : key}">${key}</button>`)
     .join('');
 
-  if (authenticatedSession) pinEntry.textContent = `${authenticatedSession.name} · ${authenticatedSession.roleLabel}`;
+  if (authenticatedSession) pinEntry.textContent = `ID: ${authenticatedSession.profileId}`;
 
   pinEntry.addEventListener('click', () => {
     accessError.hidden = true;

@@ -213,36 +213,54 @@ Vistas.nuevo = () => {
   const opciones = [...Array.from({ length: Store.config.mesas }, (_, i) => `Mesa ${i + 1}`)];
   if (PosAuth.can('delivery')) opciones.push('Para llevar', 'Domicilio');
   if (borrador.mesa && !opciones.includes(borrador.mesa)) opciones.unshift(borrador.mesa);
+  const combos = Store.db.menu.filter((product) => product.piezas > 0);
+  const adicionales = Store.db.menu.filter((product) => product.piezas === 0);
   return `
-  <div class="page-head"><div><h1>${borrador.editId ? `Editar pedido #${Store.pedido(borrador.editId)?.numero ?? ''}` : 'Nuevo pedido'}</h1>
-    <p>Toca un producto para agregarlo. Las alitas piden sus sabores.</p></div>
-    ${borrador.editId ? '<button class="btn" data-accion="cancelar-edicion">Descartar cambios</button>' : ''}</div>
-  <div class="pos">
-    <div>
-      <div class="toolbar">
-        <div class="search">${icono('buscar')}<input id="buscar-menu" class="input" type="search" placeholder="Buscar en el menú…" value="${esc(borrador.q)}" aria-label="Buscar en el menú"></div>
-        <div class="chips" id="chips-menu" role="group" aria-label="Categorías"></div>
-      </div>
-      <div class="menu-grid" id="menu-grid"></div>
-    </div>
-    <aside class="card cart" id="carrito">
-      <h2 style="margin-bottom:14px">Pedido</h2>
-      <div class="field"><span class="label">Mesa o tipo</span>
-        <div class="mesa-grid" id="mesa-grid" role="group" aria-label="Selecciona mesa o tipo de pedido">
-          ${opciones.map((o) => `<button type="button" class="mesa-option ${o === borrador.mesa ? 'activo' : ''}" data-accion="seleccionar-mesa" data-mesa="${esc(o)}" aria-pressed="${o === borrador.mesa}">${esc(o)}${ocupadas[o] && o !== borrador.mesa ? '<small>Ocupada</small>' : ''}</button>`).join('')}
-          ${PosAuth.can('delivery') ? '<button type="button" class="mesa-option" data-accion="mesa-manual">Otra mesa…</button>' : ''}
+  <div class="menu-ardiente-page">
+    <div class="menu-ardiente-layout">
+      <section class="menu-ardiente-products">
+        <div class="menu-ardiente-heading">
+          <div><h1>Menú Ardiente</h1><p>Alitas crujientes con actitud y salsas legendarias.</p></div>
+          ${borrador.editId ? '<button class="btn" data-accion="cancelar-edicion">Descartar cambios</button>' : ''}
         </div>
-      </div>
-      ${PosAuth.can('delivery') ? `<div class="field"><label for="f-cliente">Nombre del cliente${borrador.mesa === 'Domicilio' ? '' : ' (opcional)'}</label><input id="f-cliente" class="input" data-campo="cliente" value="${esc(borrador.cliente)}" maxlength="60" autocomplete="off"></div>
-        <div class="field"><label for="f-tel">Teléfono</label><input id="f-tel" class="input" data-campo="telefono" value="${esc(borrador.telefono)}" inputmode="tel" maxlength="20"></div>
-      <div id="campos-domicilio" ${borrador.mesa === 'Domicilio' ? '' : 'hidden'}>
-        <div class="field"><label for="f-dir">Dirección de entrega</label><input id="f-dir" class="input" data-campo="direccion" value="${esc(borrador.direccion)}" maxlength="120"></div>
-      </div>` : `<div class="field"><label for="f-cliente">Cliente (opcional)</label><input id="f-cliente" class="input" data-campo="cliente" value="${esc(borrador.cliente)}" maxlength="60" autocomplete="off"></div>`}
-      <div id="carrito-items" class="cart-items"></div>
-      <div class="field"><label for="f-nota">Nota especial</label><textarea id="f-nota" class="input" data-campo="nota" maxlength="200" placeholder="Ej: salsa aparte, bien doradas…">${esc(borrador.nota)}</textarea></div>
-      <div id="carrito-total" class="totales"></div>
-      <button class="btn btn-primary" style="width:100%;margin-top:14px;padding:12px" data-accion="guardar-pedido">${borrador.editId ? 'Guardar cambios' : 'Guardar pedido'}</button>
-    </aside>
+        <section class="menu-ardiente-section">
+          <h2>🔥 Combos de alitas</h2>
+          <div class="combo-grid">
+            ${combos.map((product) => `<article class="combo-card">
+              <div class="combo-card-top"><span class="combo-count">X${product.piezas}</span><span class="combo-price">${dinero(product.precio)}</span></div>
+              <h3>${esc(product.nombre)}</h3>
+              <p>${product.acompanamientoCantidad || 1} porción${product.acompanamientoCantidad === 1 ? '' : 'es'} de acompañamiento · Máx. ${Store.maxSaboresCombo(product)} sabores</p>
+              <button class="btn btn-primary" data-accion="agregar" data-pid="${esc(product.id)}" ${product.activo ? '' : 'disabled'}>Seleccionar y agregar</button>
+            </article>`).join('')}
+          </div>
+        </section>
+        <section class="menu-ardiente-section">
+          <h2>Adicionales y bebidas</h2>
+          <div class="extras-grid">
+            ${adicionales.map((product) => `<button class="extra-product" data-accion="agregar" data-pid="${esc(product.id)}" ${product.activo ? '' : 'disabled'}>
+              <span>${esc(product.nombre)}</span><strong>${dinero(product.precio)}</strong>
+            </button>`).join('')}
+          </div>
+        </section>
+      </section>
+
+      <aside class="card cart ardiente-cart" id="carrito">
+        <h2>🔥 Comanda de pedido</h2>
+        <div class="field"><label for="mesa-select">Mesa o tipo de pedido</label>
+          <select id="mesa-select" class="input" data-campo="mesa" required>
+            <option value="">Selecciona mesa</option>
+            ${opciones.map((option) => `<option value="${esc(option)}" ${option === borrador.mesa ? 'selected' : ''}>${esc(option)}${ocupadas[option] && option !== borrador.mesa ? ' · Ocupada' : ''}</option>`).join('')}
+          </select>
+        </div>
+        ${PosAuth.can('delivery') ? `<div class="field"><label for="f-cliente">Nombre del cliente</label><input id="f-cliente" class="input" data-campo="cliente" value="${esc(borrador.cliente)}" maxlength="60" autocomplete="off"></div>
+          <div class="field"><label for="f-tel">Teléfono</label><input id="f-tel" class="input" data-campo="telefono" value="${esc(borrador.telefono)}" inputmode="tel" maxlength="20"></div>
+          <div id="campos-domicilio" ${borrador.mesa === 'Domicilio' ? '' : 'hidden'}><div class="field"><label for="f-dir">Dirección de entrega</label><input id="f-dir" class="input" data-campo="direccion" value="${esc(borrador.direccion)}" maxlength="120"></div></div>` : `<div class="field"><label for="f-cliente">Cliente (opcional)</label><input id="f-cliente" class="input" data-campo="cliente" value="${esc(borrador.cliente)}" maxlength="60" autocomplete="off"></div>`}
+        <div id="carrito-items" class="cart-items ardiente-cart-items"></div>
+        <div class="field"><label for="f-nota">Nota / observación para cocina</label><textarea id="f-nota" class="input" data-campo="nota" maxlength="200" placeholder="Ej: salsa aparte, bien tostadas…">${esc(borrador.nota)}</textarea></div>
+        <div id="carrito-total" class="totales"></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:14px;padding:12px" data-accion="guardar-pedido">${borrador.editId ? 'Guardar cambios' : 'Enviar a cocina y caja'}</button>
+      </aside>
+    </div>
   </div>
   <button class="cart-fab" id="cart-fab" data-accion="ir-carrito" hidden></button>`;
 };
@@ -299,7 +317,7 @@ Vistas.facturacion = () => {
   const s = Store.estadisticas();
   const caja = PosAuth.can('cash:close');
   return `
-  <div class="page-head"><div><h1>Facturación</h1><p>${caja ? 'Cobra pedidos, consulta el historial y cierra la caja' : 'Cobra los pedidos entregados y divide el total entre comensales'}</p></div></div>
+  <div class="page-head"><div><h1>${caja ? 'Cuentas por cobrar / mesas activas' : 'Facturación'}</h1><p>${caja ? 'Pedidos enviados por los perfiles de mesero y pendientes de cobro' : 'Cobra los pedidos entregados y divide el total entre comensales'}</p></div></div>
   ${caja ? `<div class="stats" style="grid-template-columns:repeat(3,1fr)">
     <div class="stat"><span class="stat-label">Pendientes por facturar</span><span class="stat-value">${s.porFacturar}</span></div>
     <div class="stat"><span class="stat-label">Facturas hoy</span><span class="stat-value">${s.facturasHoy}</span></div>
@@ -325,7 +343,7 @@ function pintarFacturacion() {
   if (Vista.tabFact === 'pendientes') {
     cont.innerHTML = pend.length ? `<div class="card">${pend.map((p) => `<div class="fila">
         <span class="num">#${p.numero}</span>
-        <div><strong>${esc(p.mesa)}</strong><div class="pedido-meta">${plural(p.items.reduce((s, i) => s + i.cant, 0), 'ítem', 'ítems')} · entregado ${hora(p.actualizado)}${p.cliente ? ` · ${esc(p.cliente)}` : ''}</div></div>
+        <div><strong>${esc(p.mesa)}</strong><div class="pedido-meta">${plural(p.items.reduce((s, i) => s + i.cant, 0), 'ítem', 'ítems')} · ID mesero ${esc(p.creadoPor?.profileId || p.creadoPor?.userId || 'N/D')} · entregado ${hora(p.actualizado)}${p.cliente ? ` · ${esc(p.cliente)}` : ''}</div></div>
         <button class="btn btn-sm" data-accion="detalle" data-id="${esc(p.id)}">Detalle</button>
         <span class="monto">${dinero(totalPedido(p))}</span>
         <button class="btn btn-ok btn-sm" data-accion="facturar" data-id="${esc(p.id)}">Facturar</button></div>`).join('')}</div>`
@@ -431,13 +449,28 @@ function pintarMenuAdmin() {
         ${botones('editar-sabor', 'eliminar-sabor', s.id)}</div>`;
     }).join('') : vacio('menu', 'Aún no hay sabores.')}</div>`;
   } else {
-    cont.innerHTML = `<div class="card" style="margin-top:20px">${db.ingredientes.length ? [...db.ingredientes].sort((a, b) => (a.stock <= a.minimo ? 0 : 1) - (b.stock <= b.minimo ? 0 : 1) || a.nombre.localeCompare(b.nombre)).map((i) => {
-      const low = i.stock <= i.minimo;
-      return `<div class="menu-fila inv">
-        <div><strong>${esc(i.nombre)}</strong><div class="pedido-meta">Mínimo ${i.minimo} ${esc(i.unidad)}${i.numeroLote ? ` · Lote: ${esc(i.numeroLote)}` : ''}</div></div>
-        <span class="stock ${low ? 'low' : ''}">${low ? icono('alerta', 'icon-sm') : ''}${i.stock.toLocaleString('es-CO')} ${esc(i.unidad)}</span>
-        ${admin ? botones('editar-ingrediente', 'eliminar-ingrediente', i.id, `<button class="btn btn-sm" data-accion="ajustar-stock" data-id="${esc(i.id)}">Ajustar</button>`) : ''}</div>`;
-    }).join('') : vacio('menu', 'Aún no hay ingredientes.')}</div>`;
+    const groups = [
+      ['Proteínas', (item) => /alita|pollo/i.test(item.nombre)],
+      ['Acompañamientos', (item) => /papa|yuca/i.test(item.nombre)],
+      ['Consumibles y bebidas', (item) => /coca|kola|manzana|heineken|budweiser|club colombia|coronita|agua/i.test(item.nombre)],
+      ['Insumos y salsas', (item) => /salsa|bbq|teriyaki|mostaza|parmesano/i.test(item.nombre)],
+    ];
+    const byGroup = groups.map(([name, matches]) => [name, db.ingredientes.filter(matches)]).filter(([, items]) => items.length);
+    const assigned = new Set(byGroup.flatMap(([, items]) => items.map((item) => item.id)));
+    const otherItems = db.ingredientes.filter((item) => !assigned.has(item.id));
+    if (otherItems.length) byGroup.push(['Otros insumos', otherItems]);
+    cont.innerHTML = db.ingredientes.length ? byGroup.map(([name, items]) => `<section class="inventory-group">
+      <h2>${esc(name)}</h2><div class="card">${items.sort((a, b) => a.nombre.localeCompare(b.nombre)).map((i) => {
+        const capacity = Math.max(Number(i.capacidad) || 0, Number(i.stock), Number(i.minimo) * 2, 1);
+        const percentage = Math.min(100, Math.round(Number(i.stock) / capacity * 100));
+        const level = Number(i.stock) <= Number(i.minimo) ? 'critical' : Number(i.stock) <= Number(i.minimo) * 1.5 ? 'warning' : 'healthy';
+        const low = level === 'critical';
+        return `<div class="menu-fila inv">
+          <div class="inventory-name"><strong>${esc(i.nombre)}</strong><div class="pedido-meta">Mínimo ${i.minimo} ${esc(i.unidad)}${i.numeroLote ? ` · Lote: ${esc(i.numeroLote)}` : ''}</div>
+            <div class="stock-meter ${level}" role="meter" aria-label="Stock de ${esc(i.nombre)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percentage}"><span style="width:${percentage}%"></span></div></div>
+          <span class="stock ${low ? 'low' : ''}">${low ? icono('alerta', 'icon-sm') : ''}${i.stock.toLocaleString('es-CO')} ${esc(i.unidad)}</span>
+          ${admin ? botones('editar-ingrediente', 'eliminar-ingrediente', i.id, `<button class="btn btn-sm" data-accion="ajustar-stock" data-id="${esc(i.id)}">Ingresar insumos</button>`) : ''}</div>`;
+      }).join('')}</div></section>`).join('') : `<div class="card">${vacio('menu', 'Aún no hay ingredientes.')}</div>`;
   }
 }
 Despues.menu = pintarMenuAdmin;

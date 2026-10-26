@@ -31,7 +31,7 @@ const Store = (() => {
 
   /* ---------- Datos iniciales ---------- */
   function datosIniciales() {
-    const ing = (id, nombre, unidad, stock, minimo) => ({ id, nombre, unidad, stock, minimo, numeroLote: '' });
+    const ing = (id, nombre, unidad, stock, minimo) => ({ id, nombre, unidad, stock, minimo, capacidad: stock, numeroLote: '' });
     const sab = (id, nombre, picante, ingId) => ({ id, nombre, picante, activo: true, ing: ingId, porPieza: 8 });
     const prod = (o) => ({ activo: true, piezas: 0, maxSabores: 0, receta: [], ...o });
     const bebida = (id, nombre, precio) => prod({
@@ -117,7 +117,11 @@ const Store = (() => {
         }
         const ingredientes = [...(p.ingredientes || [])];
         for (const inicial of d.ingredientes) {
-          if (!ingredientes.some((item) => item.id === inicial.id)) ingredientes.push(inicial);
+          const storedIngredient = ingredientes.find((item) => item.id === inicial.id);
+          if (!storedIngredient) ingredientes.push(inicial);
+          else if (!Number.isFinite(Number(storedIngredient.capacidad)) || Number(storedIngredient.capacidad) <= 0) {
+            storedIngredient.capacidad = Math.max(Number(storedIngredient.stock) || 0, Number(storedIngredient.minimo) * 2 || 0, 1);
+          }
         }
         let menu = p.menu || d.menu;
         let sabores = p.sabores || d.sabores;
@@ -184,8 +188,8 @@ const Store = (() => {
         return `${p.nombre}: reparte las ${p.piezas} piezas equitativamente entre los sabores seleccionados.`;
       }
       if (sabores.reduce((total, saborItem) => total + saborItem.piezas, 0) !== p.piezas) return `${p.nombre}: la selección debe cubrir exactamente ${p.piezas} alitas.`;
-      if (p.acompanamientoRequerido && !['Papas', 'Yuquitas'].includes(item.acompanamiento)) return `${p.nombre}: selecciona Papas o Yuquitas como acompañamiento.`;
-      if (p.acompanamientoRequerido && item.acompanamientoCantidad !== p.acompanamientoCantidad) return `${p.nombre}: la cantidad de acompañamientos no coincide con el combo.`;
+      if (p.acompanamientoRequerido && !['Papas', 'Yuquitas'].includes(item.acompanamiento || 'Papas')) return `${p.nombre}: selecciona Papas o Yuquitas como acompañamiento.`;
+      if (p.acompanamientoRequerido && item.acompanamientoCantidad != null && item.acompanamientoCantidad !== p.acompanamientoCantidad) return `${p.nombre}: la cantidad de acompañamientos no coincide con el combo.`;
     }
     return '';
   }
@@ -201,7 +205,7 @@ const Store = (() => {
         ...item,
         sabores,
         ...(p.acompanamientoRequerido
-          ? { acompanamiento: item.acompanamiento, acompanamientoCantidad: p.acompanamientoCantidad }
+          ? { acompanamiento: item.acompanamiento || 'Papas', acompanamientoCantidad: p.acompanamientoCantidad }
           : {}),
       };
     });
@@ -406,7 +410,11 @@ const Store = (() => {
       const x = db[col].find((e) => e.id === datos.id);
       if (x) { Object.assign(x, datos); guardar(); return x; }
     }
-    const nuevo = { ...datos, id: uid() };
+    const nuevo = {
+      ...datos,
+      ...(col === 'ingredientes' ? { capacidad: Number(datos.capacidad) || Number(datos.stock) || 1 } : {}),
+      id: uid(),
+    };
     db[col].push(nuevo);
     guardar();
     return nuevo;

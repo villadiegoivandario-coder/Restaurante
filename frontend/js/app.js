@@ -96,7 +96,7 @@ function render({ nuevaPagina = false } = {}) {
   if (Despues[vista]) Despues[vista]();
   pintarNav(path);
   $('#brand-name').textContent = "Llama's Wings";
-  $('#active-role').textContent = `${window.posSession.name} · ${PosAuth.roleLabel(window.posSession.role)}`;
+  $('#active-role').textContent = `ID: ${window.posSession.profileId || window.posSession.userId}`;
   document.title = "Llama's Wings - POS & ERP";
   if (nuevaPagina) { window.scrollTo(0, 0); $('#vista').focus({ preventScroll: true }); } else window.scrollTo(0, y);
 }
@@ -132,8 +132,8 @@ async function guardarPedido() {
     mesa: b.mesa, cliente: b.cliente.trim(), telefono: b.telefono.trim(), direccion: b.direccion.trim(),
     nota: b.nota.trim(), items: b.lineas,
     tipo: b.mesa === 'Domicilio' ? 'domicilio' : b.mesa === 'Para llevar' ? 'llevar' : 'mesa',
-    creadoPor: { userId: window.posSession.userId, nombre: window.posSession.name, rol: window.posSession.role },
-    modificadoPor: { userId: window.posSession.userId, nombre: window.posSession.name, rol: window.posSession.role },
+    creadoPor: { userId: window.posSession.userId, profileId: window.posSession.profileId, rol: window.posSession.role },
+    modificadoPor: { userId: window.posSession.userId, profileId: window.posSession.profileId, rol: window.posSession.role },
   };
   const r = b.editId ? Store.actualizarPedido(b.editId, datos) : Store.crearPedido(datos);
   if (!r.ok) {
@@ -326,6 +326,11 @@ function accionAutorizada(accion, datos = {}) {
 
 document.addEventListener('change', (e) => {
   const el = e.target;
+  if (el.id === 'mesa-select') {
+    borrador.mesa = el.value;
+    const deliveryFields = $('#campos-domicilio');
+    if (deliveryFields) deliveryFields.hidden = el.value !== 'Domicilio';
+  }
   if (el.type === 'checkbox' && el.dataset.accion && Acciones[el.dataset.accion] && accionAutorizada(el.dataset.accion, el.dataset)) Acciones[el.dataset.accion](el.dataset, el);
   if (el.name === 'conSabores') $('#campos-sabores').hidden = !el.checked;
   if (el.id === 'archivo-import' && el.files[0]) importarArchivo(el.files[0], el);
@@ -413,7 +418,7 @@ const Formularios = {
       nombreLegal: config.nombreLegal.trim(), nitEmisor: config.nit.trim(),
       direccionEmisor: config.direccion.trim(), telefonoEmisor: config.telefono.trim(),
       terminalId: PosTerminal.id,
-      facturadoPor: { userId: window.posSession.userId, nombre: window.posSession.name, rol: window.posSession.role },
+      facturadoPor: { userId: window.posSession.userId, profileId: window.posSession.profileId, nombre: window.posSession.name, rol: window.posSession.role },
     });
     if (!fa) return toast('No se pudo facturar. Revisa los datos obligatorios del cliente, del establecimiento y de la terminal.', 'error');
     refrescar();
